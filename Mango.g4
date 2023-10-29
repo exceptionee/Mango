@@ -9,22 +9,21 @@ statement
    | 'export'? classDeclaration
    | 'export'? interfaceDeclaration
    | 'export'? enumDeclaration
-   | expressionStatement
    | ifStatement
+   | switchStatement
    | iterationStatement
    | throwStatement
    | catchStatement
    | continueStatement
    | breakStatement
    | returnStatement
+   | expressionStatement
+   | emptyStatement
    ;
 
 block : '{' statement* '}' ;
 
-importStatement
-   : 'import' (ID | '*') 'from' ID ';'
-   | 'import' '{' idList '}' 'from' ID ';'
-   ;
+importStatement : 'import' (('{' idList '}') | ID | '*') 'from' ID ';' ;
 
 idList : ID (',' ID)* ;
 
@@ -35,27 +34,6 @@ variableDeclaration : ('var' | 'const') variableList ;
 variableList : variable (',' variable)* ;
 
 variable : ID (':' type)? initializer? ;
-
-type
-   : '(' paramaterList? ')' '->' type
-   | '(' type ')'
-   | type '[' ']' // array
-   | '[' typeList? ']' // tuple
-   | type ('|' | '&') type
-   | 'null'
-   | 'void'
-   | 'any'
-   | 'function'
-   | 'int'
-   | 'float'
-   | 'string'
-   | 'char'
-   | 'bool'
-   | ID
-   | expression '.' ID
-   ;
-
-typeList : type (',' type)* ;
 
 initializer : '=' expression ;
 
@@ -68,9 +46,9 @@ paramaterList
    | paramater (',' paramater)* (',' restParamater)?
    ;
 
-paramater : ID '?'? (':' type)? initializer? ;
-
 restParamater : '...' ID (':' type)? initializer? ;
+
+paramater : ID '?'? (':' type)? initializer? ;
 
 classDeclaration : 'class' ID ('extends' ID)? ('implements' idList)? '{' classElement* '}' ;
 
@@ -86,15 +64,15 @@ fieldDeclaration : variableList ';' ;
 
 methodDeclaration : ID '(' paramaterList? ')' (':' type)? block ;
 
-interfaceDeclaration : 'interface' ID ('extends' ID)? '{' interfaceParamater* '}' ;
+interfaceDeclaration : 'interface' ID ('extends' idList)? '{' interfaceParamater* '}' ;
 
 interfaceParamater : paramater ';' ;
 
-enumDeclaration : 'enum' ID ('extends' ID)? '{' variableList ';' '}' ;
-
-expressionStatement : expression ';' ;
+enumDeclaration : 'enum' ID ('extends' ID)? '{' variableList '}' ;
 
 ifStatement : 'if' '(' expression ')' block ('else' 'if' '(' expression ')' block)* ('else' block)? ;
+
+switchStatement : 'switch' '(' expression ')' '{' ('case' literal ':' statement*)* ('default' ':' statement*)? '}' ;
 
 iterationStatement
    : 'for' '(' (variableDeclaration | expression)? ';' expression? ';' expression? ')' block
@@ -113,13 +91,38 @@ breakStatement : 'break' ';' ;
 
 returnStatement : 'return' expression? ';' ;
 
+expressionStatement : expression ';' ;
+
+emptyStatement : ';' ;
+
+type
+   : type ('|' | '&') type
+   | '(' type ')'
+   | type '[' ']' // array
+   | '[' typeList? ']' // tuple
+   | 'null'
+   | 'void'
+   | 'any'
+   | 'function'
+   | 'int'
+   | 'float'
+   | 'string'
+   | 'char'
+   | 'bool'
+   | ID
+   | expression '.' ID
+   | '(' paramaterList? ')' '->' type
+   ;
+
+typeList : type (',' type)* ;
+
 expression
-   : (ID | '(' paramaterList? ')') '->' (expression | block)
-   | '(' expression ')'
+   : '(' expression ')'
    | expression '.' expression // member access
    | expression '[' expression ']' // array access
    | 'new' expression '(' expressionList? ')' // object creation
    | expression '(' expressionList? ')' // function call
+   | expression 'as' type // cast
    | literal
    | ID
    | expression ('++' | '--') // postfix
@@ -136,7 +139,9 @@ expression
 expressionList : expression (',' expression)* ;
 
 literal
-   : INTEGER
+   : (ID | '(' paramaterList? ')') '->' (expression | block)
+   | '{' variableList? '}'
+   | INTEGER
    | FLOAT
    | STRING
    | CHAR
