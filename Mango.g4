@@ -23,7 +23,7 @@ statement
 
 block : '{' statement* '}' ;
 
-importStatement : 'import' (('{' idList '}') | ID | '*') 'from' ID ';' ;
+importStatement : 'import' (('{' idList '}') | ID | '*') 'from' STRING ';' ;
 
 idList : ID (',' ID)* ;
 
@@ -70,20 +70,20 @@ interfaceParamater : paramater ';' ;
 
 enumDeclaration : 'enum' ID ('extends' ID)? '{' variableList '}' ;
 
-ifStatement : 'if' '(' expression ')' block ('else' 'if' '(' expression ')' block)* ('else' block)? ;
+ifStatement : 'if' '(' expression ')' (block | statement) ('else' 'if' '(' expression ')' (block | statement))* ('else' (block | statement))? ;
 
 switchStatement : 'switch' '(' expression ')' '{' ('case' literal ':' statement*)* ('default' ':' statement*)? '}' ;
 
 iterationStatement
-   : 'for' '(' (variableDeclaration | expression)? ';' expression? ';' expression? ')' block
-   | 'for' '(' variableDeclaration 'in' expression ')' block
-   | 'while' '(' expression ')' block
-   | 'do' block 'while' '(' expression ')' ';'
+   : 'for' '(' (variableDeclaration | expression)? ';' expression? ';' expression? ')' (block | statement)
+   | 'for' '(' variableDeclaration 'in' expression ')' (block | statement)
+   | 'while' '(' expression ')' (block | statement)
+   | 'do' (block | statement) 'while' '(' expression ')' ';'
    ;
 
 throwStatement : 'throw' expression ';' ;
 
-catchStatement : 'try' block 'catch' '(' variable ')' block ('finally' block)? ;
+catchStatement : 'try' (block | statement) 'catch' '(' variable ')' (block | statement) ('finally' (block | statement))? ;
 
 continueStatement : 'continue' ';' ;
 
@@ -100,10 +100,11 @@ type
    | '(' type ')'
    | type '[' ']' // array
    | '[' typeList? ']' // tuple
+   | '(' paramaterList? ')' '->' type
+   | 'any'
    | 'null'
    | 'void'
-   | 'any'
-   | 'function'
+   | 'object'
    | 'int'
    | 'float'
    | 'string'
@@ -111,7 +112,6 @@ type
    | 'bool'
    | ID
    | expression '.' ID
-   | '(' paramaterList? ')' '->' type
    ;
 
 typeList : type (',' type)* ;
@@ -139,15 +139,15 @@ expression
 expressionList : expression (',' expression)* ;
 
 literal
-   : (ID | '(' paramaterList? ')') '->' (expression | block)
-   | '{' variableList? '}'
-   | INTEGER
-   | FLOAT
-   | STRING
-   | CHAR
-   | BOOLEAN
-   | '[' expressionList? ']'
-   | 'null'
+   : (ID | '(' paramaterList? ')') '->' (expression | block) #FunctionLiteral
+   | '{' variableList? '}' #ObjectLiteral
+   | INTEGER #IntegerLiteral
+   | FLOAT #FloatLiteral
+   | STRING #StringLiteral
+   | CHAR   #CharLiteral
+   | BOOLEAN #BooleanLiteral
+   | '[' expressionList? ']' #ArrayLiteral
+   | 'null' #NullLiteral
    ;
 
 WS : [ \t\n\r]+ -> skip ;
