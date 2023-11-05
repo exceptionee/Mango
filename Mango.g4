@@ -55,7 +55,7 @@ classDeclaration : 'class' ID ('extends' ID)? ('implements' idList)? '{' classEl
 classElement
    : accessModifier? 'static'? fieldDeclaration
    | accessModifier? 'static'? methodDeclaration
-   | accessModifier? 'static'? classDeclaration
+   | accessModifier? 'static'? (classDeclaration | interfaceDeclaration | enumDeclaration)
    ;
 
 accessModifier : ('public' | 'private' | 'protected') ;
@@ -68,7 +68,7 @@ interfaceDeclaration : 'interface' ID ('extends' idList)? '{' interfaceParamater
 
 interfaceParamater : paramater ';' ;
 
-enumDeclaration : 'enum' ID ('extends' ID)? '{' variableList '}' ;
+enumDeclaration : 'enum' ID ('extends' ID)? '{' variableList? '}' ;
 
 ifStatement : 'if' '(' expression ')' (block | statement) ('else' 'if' '(' expression ')' (block | statement))* ('else' (block | statement))? ;
 
@@ -110,8 +110,8 @@ type
    | 'string'
    | 'char'
    | 'bool'
-   | ID
    | expression '.' ID
+   | ID
    ;
 
 typeList : type (',' type)* ;
