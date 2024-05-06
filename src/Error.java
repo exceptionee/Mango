@@ -1,19 +1,9 @@
 public abstract class Error {
+  static boolean error = false;
 
-   private String message;
-   private Location location;
-
-   public Error(String message, Location location) {
-
-      this.message = message;
-      this.location = location;
-
-   }
-
-   public void print() {
-
-      System.out.println(String.format("%s: %s\n\t%s", this.getClass().getName(), message, location.toString()));
-
-   }
-   
+  public Error(String message, Source location) {
+    error = true;
+    System.out.println(String
+      .format("%s: %s\n\t%s", this.getClass().getName(), message, location.toString()));
+  }
 }

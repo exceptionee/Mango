@@ -1,9 +1,5 @@
 public class SyntaxError extends Error {
-
-   SyntaxError(String message, Location location) {
-
-      super(message, location);
-
-   }
-   
+  SyntaxError(String message, Source location) {
+    super(message, location);
+  }
 }
