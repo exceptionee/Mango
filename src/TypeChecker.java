@@ -1,20 +1,76 @@
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.ArrayDeque;
 import java.util.HashMap;
-import java.util.List;
-import org.antlr.v4.runtime.tree.ParseTree;
 
 public class TypeChecker extends MangoBaseVisitor<Type> {
-  HashMap<String, Type> heap = new HashMap<String, Type>();
+  ArrayDeque<HashMap<String, Symbol>> stack = new ArrayDeque<>();
 
-  /* TODO */
+  TypeChecker() {
+    // adds global frame
+    stack.add(new HashMap<>());
+  }
+
+  @Override
+  public Type visitProgram(MangoParser.ProgramContext ctx) {
+    if (ctx.children.size() == 2)
+      return visit(ctx.children.getFirst());
+
+    return super.visitProgram(ctx);
+  }
+
+  @Override
+  public Type visitVariable(MangoParser.VariableContext ctx) {
+    String name = ctx.ID().getText();
+
+    if (stack.peek().containsKey(name)) {
+      new TypeError("'" + name + "' has already been declared", 
+        new Source(Runner.file, ctx.ID().getSymbol().getLine(), ctx.ID().getSymbol().getCharPositionInLine() + 1));
+      return Type.ERROR;
+    }
+
+    Type valueType = (ctx.value != null)? visit(ctx.value) : Type.Primitive.NULL;
+    Type type = (ctx.type() != null)? visit(ctx.type()) :
+      (ctx.value != null)? valueType : Type.ANY;
+
+    if (type != Type.ERROR && !type.superset(valueType)) {
+      type = Type.ERROR;
+      new TypeError("cannot assign type '" + valueType + "' to type '" + type + "'", 
+        new Source(Runner.file, ctx.ID().getSymbol().getLine(), ctx.ID().getSymbol().getCharPositionInLine() + 1));
+    }
+
+    MangoParser.VariableStatementContext s = (MangoParser.VariableStatementContext) ctx.parent.parent;
+    stack.peek().put(
+      ctx.name.getText(),
+      s.modifier.getType() == 1? new Symbol.Var(type) : new Symbol.Const(type)
+    );
+
+    return type;
+  }
+
+  @Override
+  public Type visitNullableType(MangoParser.NullableTypeContext ctx) {
+    Type type = visit(ctx.type());
+
+    if (type == Type.ERROR)
+      return Type.ERROR;
+    else if (type == Type.ANY)
+      return Type.ANY;
+    else if (type == Type.Primitive.NULL)
+      return Type.Primitive.NULL;
+    else
+      return new Type.Union(type, Type.Primitive.NULL);
+  }
+
   @Override
   public Type visitUnionType(MangoParser.UnionTypeContext ctx) {
     Type left = visit(ctx.left);
     Type right = visit(ctx.right);
 
-    if (left != right)
-      return new Type.Union(Arrays.asList(left, right));
+    if (left == Type.ERROR || right == Type.ERROR)
+      return Type.ERROR;
+    if (left == Type.ANY || right == Type.ANY)
+      return Type.ANY;
+    else if (!left.equals(right))
+      return new Type.Union(left, right);
 
     return left;
   }
@@ -65,27 +121,8 @@ public class TypeChecker extends MangoBaseVisitor<Type> {
   }
 
   @Override
-  public Type visitVariable(MangoParser.VariableContext ctx) {
-    Type type = (ctx.type() != null)? visit(ctx.type()) : null;
-    Type valueType = (ctx.value != null)? visit(ctx.value) : null;
-
-    if (type == Type.ERROR || valueType == Type.ERROR)
-      return null;
-    else if (type == null && valueType == null)
-      heap.put(ctx.name.getText(), Type.ANY);
-    else if (type == null)
-      heap.put(ctx.name.getText(), valueType);
-    else if (valueType == null)
-      heap.put(ctx.name.getText(), type);
-    else {
-      if (type.superset(valueType))
-        heap.put(ctx.name.getText(), type);
-      else
-        new TypeError("can assign type '" + valueType + "' to type '" + type + "'", 
-          new Source(Runner.getFileName(), 0, 0));
-    }
-
-    return null;
+  public Type visitExpressionStatement(MangoParser.ExpressionStatementContext ctx) {
+    return visit(ctx.children.getFirst());
   }
 
   @Override
@@ -95,30 +132,98 @@ public class TypeChecker extends MangoBaseVisitor<Type> {
 
   @Override
   public Type visitArrayAccess(MangoParser.ArrayAccessContext ctx) {
-    return ((Type.Array) visit(ctx.array)).type();
+    Type left = visit(ctx.array);
+
+    if (left instanceof Type.Array)
+      return ((Type.Array) left).type();
+
+    new TypeError("cannot perform an array access on type '" + left + "'",
+      new Source(Runner.file, ctx.array.start.getLine(), ctx.array.start.getCharPositionInLine() + 1));
+    return Type.ERROR;
   }
 
   @Override
   public Type visitVarExpr(MangoParser.VarExprContext ctx) {
-    return heap.get(ctx.ID().getText());
+    for (HashMap<String, Symbol> frame : stack)
+      if (frame.containsKey(ctx.ID().getText()))
+        return frame.get(ctx.ID().getText()).type();
+
+    new ReferenceError("'" + ctx.ID().getText() + "' is not declared",
+      new Source(Runner.file, ctx.start.getLine(), ctx.start.getCharPositionInLine() + 1));
+    return Type.ERROR;
+  }
+
+  @Override
+  public Type visitPostFixExpr(MangoParser.PostFixExprContext ctx) {
+    Type type = visit(ctx.expr);
+
+    if (type == Type.ERROR)
+      return Type.ERROR;
+
+    if (!(ctx.expr instanceof MangoParser.VarExprContext) && !(ctx.expr instanceof MangoParser.ArrayAccessContext)) {
+      new SyntaxError("invalid left hand side for postfix operation '" + ctx.op.getText() + "'",
+        new Source(Runner.file, ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
+      return Type.ERROR;
+    }
+    else if (stack.peek().get(ctx.expr.stop.getText()) instanceof Symbol.Const) {
+      new TypeError("cannot reassign constant '" + ctx.expr.stop.getText() + "'",
+        new Source(Runner.file, ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
+      return Type.ERROR;
+    }
+    else if (!Type.NUMBER.superset(type)) {
+      new TypeError("cannot perform operation '" + ctx.op.getText() + "' on type '" + type + "'",
+        new Source(Runner.file, ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
+      return Type.ERROR;
+    }
+
+    return type;
   }
 
   @Override
   public Type visitUnaryExpr(MangoParser.UnaryExprContext ctx) {
-    if (ctx.op.getType() == 19 || ctx.op.getType() == 20) {
-      Type type = visit(ctx.expr);
+    Type type = visit(ctx.expr);
 
-      if (type == Type.Primitive.INT)
-        return Type.Primitive.INT;
-      else if (Type.NUMBER.superset(type))
+    if (type == Type.ERROR)
+      return Type.ERROR;
+
+    switch (ctx.op.getType()) {
+      case 20:
+      case 21:
+        if (!(ctx.expr instanceof MangoParser.VarExprContext) && !(ctx.expr instanceof MangoParser.ArrayAccessContext)) {
+          new SyntaxError("invalid right hand side for unary operation '" + ctx.op.getText() + "'",
+            new Source(Runner.file, ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
+          return Type.ERROR;
+        }
+        else if (stack.peek().get(ctx.expr.stop.getText()) instanceof Symbol.Const) {
+          new TypeError("cannot reassign constant '" + ctx.expr.stop.getText() + "'",
+            new Source(Runner.file, ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
+          return Type.ERROR;
+        }
+        else if (!Type.NUMBER.superset(type)) {
+          new TypeError("cannot perform operation '" + ctx.op.getText() + "' on type '" + type + "'",
+            new Source(Runner.file, ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
+          return Type.ERROR;
+        }
+
         return type;
 
-      new TypeError("can not perform operation '" + ctx.op.getText() + "' on type '" + type + "'",
-        new Source(Runner.getFileName(), ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
-      return Type.ERROR;
-    }
+      case 22:
+      case 23:
+        if (Type.NUMBER.superset(type))
+          return type;
 
-    return Type.NUMBER;
+        new TypeError("cannot perform operation '" + ctx.op.getText() + "' on type '" + type + "'",
+          new Source(Runner.file, ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
+        return Type.ERROR;
+    
+      default:
+        if (type == Type.Primitive.BOOL)
+          return Type.Primitive.BOOL;
+
+        new TypeError("cannot perform operation '!' on type '" + type + "'",
+          new Source(Runner.file, ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
+        return Type.ERROR;
+    }
   }
 
   @Override
@@ -133,8 +238,8 @@ public class TypeChecker extends MangoBaseVisitor<Type> {
     else if (Type.NUMBER.superset(left) && Type.NUMBER.superset(right))
       return Type.Primitive.FLOAT;
 
-    new TypeError("can not perform operation '" + ctx.op.getText() + "' on types '" + left + "' and '" + right + "'",
-      new Source(Runner.getFileName(), ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
+    new TypeError("cannot perform operation '" + ctx.op.getText() + "' on types '" + left + "' and '" + right + "'",
+      new Source(Runner.file, ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
     return Type.ERROR;
   }
 
@@ -149,11 +254,11 @@ public class TypeChecker extends MangoBaseVisitor<Type> {
       return Type.Primitive.INT;
     else if (Type.NUMBER.superset(left) && Type.NUMBER.superset(right))
       return Type.Primitive.FLOAT;
-    else if (ctx.op.getType() == 19 && left == Type.Primitive.STRING && right == Type.Primitive.STRING)
+    else if (ctx.op.getType() == 22 && left == Type.Primitive.STRING && right == Type.Primitive.STRING)
       return Type.Primitive.STRING;
 
-    new TypeError("can not perform operation '" + ctx.op.getText() + "' on types '" + left + "' and '" + right + "'",
-      new Source(Runner.getFileName(), ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
+    new TypeError("cannot perform operation '" + ctx.op.getText() + "' on types '" + left + "' and '" + right + "'",
+      new Source(Runner.file, ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
     return Type.ERROR;
   }
 
@@ -167,8 +272,8 @@ public class TypeChecker extends MangoBaseVisitor<Type> {
     else if (Type.NUMBER.superset(left) && Type.NUMBER.superset(right))
       return Type.Primitive.BOOL;
     
-    new TypeError("can not perform operation '" + ctx.op.getText() + "' on types '" + left + "' and '" + right + "'",
-      new Source(Runner.getFileName(), ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
+    new TypeError("cannot perform operation '" + ctx.op.getText() + "' on types '" + left + "' and '" + right + "'",
+      new Source(Runner.file, ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
     return Type.ERROR;
   }
 
@@ -182,8 +287,8 @@ public class TypeChecker extends MangoBaseVisitor<Type> {
     else if (left.equals(right))
       return Type.Primitive.BOOL;
     
-    new TypeError("can not perform operation '" + ctx.op.getText() + "' on types '" + left + "' and '" + right + "'",
-      new Source(Runner.getFileName(), ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
+    new TypeError("cannot perform operation '" + ctx.op.getText() + "' on types '" + left + "' and '" + right + "'",
+      new Source(Runner.file, ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
     return Type.ERROR;
   }
 
@@ -197,9 +302,35 @@ public class TypeChecker extends MangoBaseVisitor<Type> {
     else if (left == Type.Primitive.BOOL && right == Type.Primitive.BOOL)
       return Type.Primitive.BOOL;
     
-    new TypeError("can not perform operation '" + ctx.op.getText() + "' on types '" + left + "' and '" + right + "'",
-      new Source(Runner.getFileName(), ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
+    new TypeError("cannot perform operation '" + ctx.op.getText() + "' on types '" + left + "' and '" + right + "'",
+      new Source(Runner.file, ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
     return Type.ERROR;
+  }
+
+  @Override
+  public Type visitNullishExpr(MangoParser.NullishExprContext ctx) {
+    Type left = visit(ctx.left);
+    Type right = visit(ctx.right);
+
+    if (left == Type.ERROR || right == Type.ERROR)
+      return Type.ERROR;
+    else if (left == Type.ANY || right == Type.ANY)
+      return Type.ANY;
+    else if (left.equals(right))
+      return left;
+    else
+      return new Type.Union(left, right);
+  }
+
+  @Override
+  public Type visitCastExpr(MangoParser.CastExprContext ctx) {
+    Type left = visit(ctx.left);
+    Type right = visit(ctx.right);
+
+    if (left == Type.ERROR || right == Type.ERROR)
+      return Type.ERROR;
+
+    return right;
   }
 
   @Override
@@ -210,16 +341,43 @@ public class TypeChecker extends MangoBaseVisitor<Type> {
 
     if (condition == Type.ERROR || value == Type.ERROR || default_ == Type.ERROR)
       return Type.ERROR;
-    else if (condition == Type.Primitive.BOOL) {
-      if (value == default_)
-        return value;
+    else if (condition == Type.Primitive.BOOL)
+      return value == default_? value : new Type.Union(value, default_);
 
-      return new Type.Union(Arrays.asList(value, default_));
+    new TypeError("cannot convert type '" + condition + "' to type 'bool'",
+      new Source(Runner.file, ctx.condition.start.getLine(), ctx.condition.start.getCharPositionInLine() + 1));
+    return Type.ERROR;
+  }
+
+  @Override
+  public Type visitAssignmentExpr(MangoParser.AssignmentExprContext ctx) {
+    Type left = visit(ctx.left);
+    Type right = visit(ctx.right);
+
+    if (left == Type.ERROR || right == Type.ERROR)
+      return Type.ERROR;
+    else if (!(ctx.left instanceof MangoParser.VarExprContext) && !(ctx.left instanceof MangoParser.ArrayAccessContext)) {
+      new SyntaxError("invalid left hand side for assignment operator '" + ctx.op.getText() + "'",
+        new Source(Runner.file, ctx.left.start.getLine(), ctx.left.start.getCharPositionInLine() + 1));
+      return Type.ERROR;
+    }
+    else if (stack.peek().get(ctx.left.stop.getText()) instanceof Symbol.Const) {
+      new TypeError("cannot reassign constant '" + ctx.left.stop.getText() + "'",
+        new Source(Runner.file, ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
+      return Type.ERROR;
+    }
+    else if (ctx.op.getType() != 6 && !Type.NUMBER.superset(left)) {
+      new TypeError("cannot perform arithmetic assignment '" + ctx.op.getText() + "' on type '" + left + "'", 
+        new Source(Runner.file, ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
+      return Type.ERROR;
+    }
+    else if (!left.superset(right)) {
+      new TypeError("cannot perform assignment '" + ctx.op.getText() + "' on types '" + left + "' and '" + right + "'", 
+        new Source(Runner.file, ctx.right.start.getLine(), ctx.right.start.getCharPositionInLine() + 1));
+      return Type.ERROR;
     }
 
-    new TypeError("can not convert type '" + condition + "' to type 'bool'",
-      new Source(Runner.getFileName(), ctx.condition.start.getLine(), ctx.condition.start.getCharPositionInLine() + 1));
-    return Type.ERROR;
+    return right;
   }
 
   @Override
@@ -249,17 +407,22 @@ public class TypeChecker extends MangoBaseVisitor<Type> {
 
 	@Override
   public Type visitArrayLiteral(MangoParser.ArrayLiteralContext ctx) {
-    if (ctx.expressionList() == null)
+    if (ctx.array == null)
       return new Type.Array(Type.Primitive.NULL);
 
-    ArrayList<Type> list = new ArrayList<Type>();
+    Type.Union union = new Type.Union();
 
-    List<ParseTree> children = ctx.expressionList().children;
-    for (int i = 1; i < children.size(); i += 2) {
-      list.add(visit(children.get(i)));
-    }
+    for (int i = 0; i < ctx.array.children.size(); i += 2)
+      union.add(visit(ctx.array.children.get(i)));
 
-    return new Type.Array(new Type.Union(list));
+    if (union.contains(Type.ERROR))
+      return Type.ERROR;
+    else if (union.contains(Type.ANY))
+      return Type.ANY;
+    else if (union.size() == 1)
+      return new Type.Array(union.getFirst());
+    else
+      return new Type.Array(union);
   }
 
   @Override

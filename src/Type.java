@@ -1,7 +1,5 @@
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.List;
 
 public interface Type {
   boolean superset(Type type);
@@ -15,12 +13,17 @@ public interface Type {
     }
 
     @Override
+    public String toString() {
+      return "any";
+    }
+
+    @Override
     public boolean equals(Object obj) {
       return true;
     }
   };
 
-  Union NUMBER = new Union(Arrays.asList(Primitive.INT, Primitive.FLOAT));
+  Union NUMBER = new Union(Primitive.INT, Primitive.FLOAT);
 
   enum Primitive implements Type {
     INT, FLOAT, STRING, CHAR, BOOL, NULL;
@@ -39,7 +42,17 @@ public interface Type {
   record Array(Type type) implements Type {
     @Override
     public boolean superset(Type type) {
-      return type.superset(type);
+      return type instanceof Array && this.type.superset(((Array) type).type);
+    }
+
+    @Override
+    public final boolean equals(Object obj) {
+      return obj instanceof Array && type.equals(((Array) obj).type);
+    }
+
+    @Override
+    public final int hashCode() {
+      return type.hashCode();
     }
 
     @Override
@@ -52,20 +65,16 @@ public interface Type {
   }
 
   class Union extends LinkedHashSet<Type> implements Type {
-    public Union(List<Type> arrayList) {
-      super(arrayList);
+    public Union(Type... types) {
+      for (Type type : types)
+        add(type);
     }
 
     @Override
     public boolean add(Type type) {
-      if (type instanceof Union) {
-        Iterator<Type> iterator = ((Union) type).iterator();
+      if (type instanceof Union)
+        return super.addAll((Union) type);
 
-        while (iterator.hasNext())
-          add(iterator.next());
-          
-        return true;
-      }
       return super.add(type);
     }
 
@@ -80,14 +89,12 @@ public interface Type {
     @Override
     public final String toString() {
       Iterator<Type> iterator = this.iterator();
-      String string = "";
+      StringBuilder string = new StringBuilder(iterator.next().toString());
+    
+      while (iterator.hasNext())
+        string.append(" | ").append(iterator.next());
 
-      for (int i = 0; i < this.size() - 1; i++) {
-        Type next = iterator.next();
-        string += next + " | ";
-      }
-
-      return string + iterator.next();
+      return string.toString();
     }
   }
 }
