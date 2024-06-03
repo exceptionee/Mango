@@ -16,29 +16,19 @@ public interface MangoVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitProgram(MangoParser.ProgramContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link MangoParser#statement}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitStatement(MangoParser.StatementContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link MangoParser#expressionStatement}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitExpressionStatement(MangoParser.ExpressionStatementContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link MangoParser#variableStatement}.
+	 * Visit a parse tree produced by the {@code VariableStatement}
+	 * labeled alternative in {@link MangoParser#statement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitVariableStatement(MangoParser.VariableStatementContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link MangoParser#variableDeclaration}.
+	 * Visit a parse tree produced by the {@code ExpressionStatement}
+	 * labeled alternative in {@link MangoParser#statement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitVariableDeclaration(MangoParser.VariableDeclarationContext ctx);
+	T visitExpressionStatement(MangoParser.ExpressionStatementContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MangoParser#variableList}.
 	 * @param ctx the parse tree
@@ -94,6 +84,13 @@ public interface MangoVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitNullType(MangoParser.NullTypeContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code NullableType}
+	 * labeled alternative in {@link MangoParser#type}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNullableType(MangoParser.NullableTypeContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code AnyType}
 	 * labeled alternative in {@link MangoParser#type}.
 	 * @param ctx the parse tree
@@ -128,6 +125,41 @@ public interface MangoVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitTypeList(MangoParser.TypeListContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code LogicExpr}
+	 * labeled alternative in {@link MangoParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitLogicExpr(MangoParser.LogicExprContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code AssignmentExpr}
+	 * labeled alternative in {@link MangoParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitAssignmentExpr(MangoParser.AssignmentExprContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code UnaryExpr}
+	 * labeled alternative in {@link MangoParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitUnaryExpr(MangoParser.UnaryExprContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code SecondaryExpr}
+	 * labeled alternative in {@link MangoParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSecondaryExpr(MangoParser.SecondaryExprContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code NullishExpr}
+	 * labeled alternative in {@link MangoParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitNullishExpr(MangoParser.NullishExprContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code ArrayAccess}
 	 * labeled alternative in {@link MangoParser#expression}.
 	 * @param ctx the parse tree
@@ -142,12 +174,12 @@ public interface MangoVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitEqualityExpr(MangoParser.EqualityExprContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code LogicExpr}
+	 * Visit a parse tree produced by the {@code CastExpr}
 	 * labeled alternative in {@link MangoParser#expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitLogicExpr(MangoParser.LogicExprContext ctx);
+	T visitCastExpr(MangoParser.CastExprContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code LiteralExpr}
 	 * labeled alternative in {@link MangoParser#expression}.
@@ -163,19 +195,19 @@ public interface MangoVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitVarExpr(MangoParser.VarExprContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code PostFixExpr}
+	 * labeled alternative in {@link MangoParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPostFixExpr(MangoParser.PostFixExprContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code PrimaryExpr}
 	 * labeled alternative in {@link MangoParser#expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitPrimaryExpr(MangoParser.PrimaryExprContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code AssignmentExpr}
-	 * labeled alternative in {@link MangoParser#expression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitAssignmentExpr(MangoParser.AssignmentExprContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code ParenExpr}
 	 * labeled alternative in {@link MangoParser#expression}.
@@ -191,26 +223,12 @@ public interface MangoVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitComparativeExpr(MangoParser.ComparativeExprContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code UnaryExpr}
-	 * labeled alternative in {@link MangoParser#expression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitUnaryExpr(MangoParser.UnaryExprContext ctx);
-	/**
 	 * Visit a parse tree produced by the {@code TernaryExpr}
 	 * labeled alternative in {@link MangoParser#expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitTernaryExpr(MangoParser.TernaryExprContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code SecondaryExpr}
-	 * labeled alternative in {@link MangoParser#expression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitSecondaryExpr(MangoParser.SecondaryExprContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link MangoParser#expressionList}.
 	 * @param ctx the parse tree

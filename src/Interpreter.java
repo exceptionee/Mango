@@ -1,14 +1,20 @@
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 class Interpreter extends MangoBaseVisitor<Object> {
-  HashMap<String, Object> heap = new HashMap<String, Object>();
+  ArrayDeque<HashMap<String, Object>> stack = new ArrayDeque<>();
+
+  Interpreter() {
+    // adds global frame
+    stack.add(new HashMap<>());
+  }
 
   @Override
   public Void visitVariable(MangoParser.VariableContext ctx) {
-    heap.put(ctx.name.getText(), ctx.value != null? visit(ctx.value) : null);
+    stack.peek().put(ctx.name.getText(), ctx.value != null? visit(ctx.value) : null);
     return null;
   }
   
@@ -20,19 +26,23 @@ class Interpreter extends MangoBaseVisitor<Object> {
   @Override
   public Object visitArrayAccess(MangoParser.ArrayAccessContext ctx) {
     ArrayList<?> array = (ArrayList<?>) visit(ctx.array);
-    int index = (int) (long) visit(ctx.index);
+    long index = (long) visit(ctx.index);
 
     if (index < 0 || array.size() <= index) {
       new RuntimeError("index " + index + " out of range for length " + array.size(),
-        new Source(Runner.getFileName(), ctx.index.start.getLine(), ctx.index.start.getCharPositionInLine() + 1));
+        new Source(Runner.file, ctx.index.start.getLine(), ctx.index.start.getCharPositionInLine() + 1));
     }
 
-    return array.get(index);
+    return array.get((int) index);
   }
 
   @Override
   public Object visitVarExpr(MangoParser.VarExprContext ctx) {
-    return heap.get(ctx.ID().getText());
+    for (HashMap<String, Object> frame : stack)
+      if (frame.containsKey(ctx.ID().getText()))
+        return frame.get(ctx.ID().getText());
+
+    return null;
   }
 
   @Override
@@ -47,10 +57,10 @@ class Interpreter extends MangoBaseVisitor<Object> {
         return value instanceof Long? -((long) value) : -((double) value);
 
       case 21:
-        return value instanceof Long? ((long) value) + 1 : ((double) value) + 1;
+        return value instanceof Long? (value = ((long) value) + 1) : (value = ((double) value) + 1);
 
       case 22:
-        return value instanceof Long? ((long) value) - 1 : ((double) value) - 1;
+        return value instanceof Long? (value = ((long) value) - 1) : (value = ((double) value) - 1);
 
       default:
         return !((boolean) value);
@@ -69,9 +79,9 @@ class Interpreter extends MangoBaseVisitor<Object> {
         case 25:
           if ((long) right == 0)
             new RuntimeError("can not divide by 0",
-              new Source(Runner.getFileName(), ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
+              new Source(Runner.file, ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
           return (long) left / (long) right;
-        case 26:
+        default:
           return (long) left % (long) right;
       }
     }
@@ -82,13 +92,11 @@ class Interpreter extends MangoBaseVisitor<Object> {
       case 25:
         if (right.doubleValue() == 0)
           new RuntimeError("can not divide by 0",
-            new Source(Runner.getFileName(), ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
+            new Source(Runner.file, ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
         return left.doubleValue() / right.doubleValue();
-      case 26:
+      default:
         return left.doubleValue() % right.doubleValue();
     }
-
-    return null;
   }
 
   @Override
@@ -171,15 +179,40 @@ class Interpreter extends MangoBaseVisitor<Object> {
   }
 
   @Override
+  public Object visitAssignmentExpr(MangoParser.AssignmentExprContext ctx) {
+    Object left = visit(ctx.left);
+    Object right = visit(ctx.right);
+
+    switch (ctx.op.getType()) {
+      case 6:
+        left = right;
+        System.out.println(stack.peek() + " " + left);
+
+      case 36:
+        return left instanceof Long? right = ((long) left) + ((long) right) : (right = ((double) left) + ((double) right));
+
+      case 37:
+        return left instanceof Long? right = ((long) left) - ((long) right) : (right = ((double) left) - ((double) right));
+      
+      case 38:
+        return left instanceof Long? right = ((long) left) * ((long) right) : (right = ((double) left) * ((double) right));
+
+      case 39:
+        return left instanceof Long? right = ((long) left) / ((long) right) : (right = ((double) left) / ((double) right));
+
+      default:
+        return left instanceof Long? right = ((long) left) % ((long) right) : (right = ((double) left) % ((double) right));
+    }
+  }
+
+  @Override
   public Object visitIntLiteral(MangoParser.IntLiteralContext ctx) {
     try {
       return Long.parseLong(ctx.start.getText());
     } catch (NumberFormatException e) {
-      new RuntimeError("number " + ctx.start.getText() + " out of range for type int",
-        new Source(Runner.getFileName(), ctx.start.getLine(), ctx.start.getCharPositionInLine() + 1));
+      return new RuntimeError("number " + ctx.start.getText() + " out of range for type int",
+        new Source(Runner.file, ctx.start.getLine(), ctx.start.getCharPositionInLine() + 1));
     }
-
-    return null;
   }
 
   @Override

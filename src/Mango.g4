@@ -3,22 +3,17 @@ grammar Mango;
 program : statement* EOF ;
 
 statement
-  : variableStatement
-  | expressionStatement
+  : modifier=('var' | 'const') variableList ';' #VariableStatement
+  | expression ';' #ExpressionStatement
   ;
-
-expressionStatement : expression ';' ;
-
-variableStatement : variableDeclaration ';' ;
-
-variableDeclaration : ('var' | 'const') variableList ;
 
 variableList : variable (',' variable)* ;
 
 variable : name=ID (':' type)? ('=' value=expression)? ;
 
 type
-  : left=type '|' right=type #UnionType
+  : type '?' #NullableType
+  | left=type '|' right=type #UnionType
   | '(' type ')' #ParenType
   | type '[' ']' #ArrayType
   | 'any' #AnyType
@@ -37,14 +32,17 @@ expression
   | array=expression '[' index=expression ']' #ArrayAccess
   | literal #LiteralExpr
   | ID #VarExpr
+  | expr=expression op=('++' | '--') #PostFixExpr
   | op=('+' | '-' | '++' | '--' | '!') expr=expression #UnaryExpr
   | left=expression op=('*' | '/' | '%') right=expression #SecondaryExpr
   | left=expression op=('+' | '-') right=expression #PrimaryExpr
   | left=expression op=('>' | '<' | '>=' | '<=') right=expression #ComparativeExpr
   | left=expression op=('==' | '!=') right=expression #EqualityExpr
   | left=expression op=('&&' | '||') right=expression #LogicExpr
+  | left=expression '??' right=expression #NullishExpr
+  | left=expression 'as' right=type #CastExpr
   | condition=expression '?' value=expression ':' default=expression #TernaryExpr
-  | left=expression op=('=' | '*=' | '/=' | '%=' | '+=' | '-=') right=expression #AssignmentExpr
+  | left=expression op=('=' | '+=' | '-=' | '*=' | '/=' | '%=') right=expression #AssignmentExpr
   ;
 
 expressionList : expression (',' expression)* ;
@@ -64,7 +62,10 @@ COMMENT : '/*' .*? '*/' -> skip ;
 LINE_COMMENT : '//' .*? ('\r' | '\n' | '\r\n' | EOF) -> skip ;
 
 INT : DIGIT+ ;
-FLOAT : INT? '.' DIGIT* ;
+FLOAT
+  : INT? '.' INT?
+  | INT ('.' INT)? (('e' | 'E') '-'? INT)?
+  ;
 STRING : '"' ( ESC | '\\"' | ~[\\\r\n] )*? '"' { setText(getText().substring(1, getText().length() - 1)); } ;
 CHAR : '\'' ( ESC | '\\\'' | ~[\\\r\n'] ) '\'' { setText(getText().substring(1, getText().length() - 1)); } ;
 

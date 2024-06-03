@@ -7,6 +7,10 @@
 The official repository for the Mango programming Language.
 ## Installation
 
+Download the mango.jar file located in src directory.
+
+## Installation: Method 2
+
 Download the repository and then the needed `.jar` files from the following links.
 
 [antlr-4.13.1-complete.jar](https://www.antlr.org/download/antlr-4.13.1-complete.jar)

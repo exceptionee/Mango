@@ -1,6 +1,7 @@
 .vscode/
 bin/
 lib/
+tests/
 src/.antlr/
 *.mango
-mango.bat
+*.js

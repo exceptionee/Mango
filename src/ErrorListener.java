@@ -7,6 +7,6 @@ public class ErrorListener extends BaseErrorListener {
   public void syntaxError(Recognizer<?, ?> recognizer, Object offender,
     int line, int column, String message, RecognitionException e
   ) {
-    new SyntaxError(message, new Source(Runner.getFileName(), line, ++column));
+    new SyntaxError(message, new Source(Runner.file, line, ++column));
   }
 }
