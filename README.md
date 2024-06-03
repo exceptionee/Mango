@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://cdn.discordapp.com/attachments/1164976468741345311/1171108909675720724/mango.png?ex=655b7b2a&is=6549062a&hm=06a9aaba81c1c98f9ff0d11b4872c56a65ae45c4aec685b9e36e01a3319c7ff0&"/>
+  <img src="https://cdn.discordapp.com/attachments/1229556443880095924/1247319163064811591/mango.png?ex=665f97fe&is=665e467e&hm=b1e6ad1e213137353210a0994d8da051fefeee9f9b616342d44f73baa2cdbedd&"/>
 </div>
 
 ![Static Badge](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
@@ -7,29 +7,14 @@
 The official repository for the Mango programming Language.
 ## Installation
 
-Download the mango.jar file located in src directory.
+Download the `Mango.jar` file located in the main branch.
 
-## Installation: Method 2
-
-Download the repository and then the needed `.jar` files from the following links.
-
-[antlr-4.13.1-complete.jar](https://www.antlr.org/download/antlr-4.13.1-complete.jar)
-
-[picocli-4.7.5.jar](https://github.com/remkop/picocli/releases/download/v4.7.5/picocli-4.7.5.jar)
 ## Run Locally
 
-If you are on windows you can use the following ``batch`` script to run the compiler.
-
-``` bat
-@echo off
-
-java -cp "bin/;lib/*"; Compiler %*
-```
-
-Otherwise just use the Java command.
+If you are on windows you can use the provided `mango.bat` script located in the main branch. Otherwise, just run the JAR file normally.
 
 ``` bash
-java -cp "bin/;lib/*"; Compiler %* <flags>
+java -jar Mango.jar <args>
 ```
 ## Flags
 

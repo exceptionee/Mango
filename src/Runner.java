@@ -1,9 +1,13 @@
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Arrays;
+import org.antlr.v4.gui.TreeViewer;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.IntStream;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.Tree;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -45,7 +49,10 @@ public class Runner implements Runnable {
 
         try {
           Runner.file = file;
-          interpret(CharStreams.fromFileName(file));
+          Tree tree = interpret(CharStreams.fromFileName(file));
+
+          if (gui)
+            new TreeViewer(Arrays.asList(MangoParser.ruleNames), tree).open();
         }
         catch (IOException e) {
           System.out.println("error: file not found " + file);
@@ -84,9 +91,13 @@ public class Runner implements Runnable {
     }
   }
 
-  private static void interpret(IntStream stream) {
+  private static Tree interpret(IntStream stream) {
     lexer.setInputStream(stream);
     parser.setTokenStream(new CommonTokenStream(lexer));
-    typeChecker.visit(parser.program());
+
+    Tree tree = parser.program();
+
+    typeChecker.visit((ParseTree) tree);
+    return tree;
   }
 }
