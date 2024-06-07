@@ -5,6 +5,7 @@ program : statement* EOF ;
 statement
   : modifier=('var' | 'const') variableList ';' #VariableStatement
   | expression ';' #ExpressionStatement
+  | ';' #EmptyStatement
   ;
 
 variableList : variable (',' variable)* ;
@@ -13,9 +14,9 @@ variable : name=ID (':' type)? ('=' value=expression)? ;
 
 type
   : type '?' #NullableType
+  | type '[' ']' #ArrayType
   | left=type '|' right=type #UnionType
   | '(' type ')' #ParenType
-  | type '[' ']' #ArrayType
   | 'any' #AnyType
   | 'int' #IntType
   | 'float' #FloatType
@@ -61,7 +62,7 @@ WS : [ \t\n\r]+ -> skip ;
 COMMENT : '/*' .*? '*/' -> skip ;
 LINE_COMMENT : '//' .*? ('\r' | '\n' | '\r\n' | EOF) -> skip ;
 
-INT : DIGIT+ ;
+INT : [0-9]+ ;
 FLOAT
   : INT? '.' INT?
   | INT ('.' INT)? (('e' | 'E') '-'? INT)?
@@ -71,5 +72,4 @@ CHAR : '\'' ( ESC | '\\\'' | ~[\\\r\n'] ) '\'' { setText(getText().substring(1, 
 
 ID : [_a-zA-Z][_a-zA-Z0-9]* ;
 
-fragment DIGIT : [0-9] ;
 fragment ESC : '\\' [btn\\] ;
