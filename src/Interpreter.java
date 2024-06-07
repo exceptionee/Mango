@@ -1,6 +1,8 @@
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import org.antlr.v4.runtime.tree.ParseTree;
 
@@ -13,9 +15,75 @@ class Interpreter extends MangoBaseVisitor<Object> {
   }
 
   @Override
+  public Object visitProgram(MangoParser.ProgramContext ctx) {
+    if (ctx.children.size() == 2)
+      return visit(ctx.children.getFirst());
+
+    return super.visitProgram(ctx);
+  }
+
+  @Override
+  public Object visitExpressionStatement(MangoParser.ExpressionStatementContext ctx) {
+    return visit(ctx.children.getFirst());
+  }
+
+  @Override
   public Void visitVariable(MangoParser.VariableContext ctx) {
     stack.peek().put(ctx.name.getText(), ctx.value != null? visit(ctx.value) : null);
     return null;
+  }
+
+  @Override
+  public Object visitNullableType(MangoParser.NullableTypeContext ctx) {
+    return visit(ctx.type());
+  }
+
+  @Override
+  public Object visitArrayType(MangoParser.ArrayTypeContext ctx) {
+    return visit(ctx.type());
+  }
+
+  @Override
+  public Object visitUnionType(MangoParser.UnionTypeContext ctx) {
+    Class<?> left = (Class<?>)visit(ctx.left);
+    Class<?> right = (Class<?>)visit(ctx.right);
+
+    if (left == Object.class || right == Object.class)
+      return Object.class;
+    else if (left != right)
+      return new HashSet<>(Arrays.asList(left, right));
+
+    return left;
+  }
+
+  @Override
+  public Object visitAnyType(MangoParser.AnyTypeContext ctx) {
+    return Object.class;
+  }
+
+  @Override
+  public Object visitIntType(MangoParser.IntTypeContext ctx) {
+    return Long.class;
+  }
+
+  @Override
+  public Object visitFloatType(MangoParser.FloatTypeContext ctx) {
+    return Double.class;
+  }
+
+  @Override
+  public Object visitStringType(MangoParser.StringTypeContext ctx) {
+    return String.class;
+  }
+
+  @Override
+  public Object visitCharType(MangoParser.CharTypeContext ctx) {
+    return Character.class;
+  }
+
+  @Override
+  public Object visitBoolType(MangoParser.BoolTypeContext ctx) {
+    return Boolean.class;
   }
   
   @Override
@@ -46,21 +114,53 @@ class Interpreter extends MangoBaseVisitor<Object> {
   }
 
   @Override
+  public Object visitPostFixExpr(MangoParser.PostFixExprContext ctx) {
+    Object temp = visit(ctx.expr);
+
+    if (ctx.op.getType() == 20) {
+      if (temp instanceof Long)
+        assign(ctx.expr, (Long) temp + 1);
+      else
+        assign(ctx.expr, (Double) temp + 1);
+    }
+    else {
+      if (temp instanceof Long)
+        assign(ctx.expr, (Long) temp - 1);
+      else
+        assign(ctx.expr, (Double) temp - 1);
+    }
+
+    return temp;
+  }
+
+  @Override
   public Object visitUnaryExpr(MangoParser.UnaryExprContext ctx) {
     Object value = visit(ctx.expr);
 
     switch (ctx.op.getType()) {
-      case 19:
-        return value instanceof Long? +((long) value) : +((double) value);
-
       case 20:
-        return value instanceof Long? -((long) value) : -((double) value);
+        if (value instanceof Long)
+          return assign(ctx.expr, ((Long) value) + 1);
+        else
+          return assign(ctx.expr, ((Double) value) + 1);
 
       case 21:
-        return value instanceof Long? (value = ((long) value) + 1) : (value = ((double) value) + 1);
+        if (value instanceof Long)
+          return assign(ctx.expr, ((Long) value) - 1);
+        else
+          return assign(ctx.expr, ((Double) value) - 1);
 
       case 22:
-        return value instanceof Long? (value = ((long) value) - 1) : (value = ((double) value) - 1);
+        if (value instanceof Long)
+          return +((Long) value);
+
+        return +((Double) value);
+
+      case 23:
+        if (value instanceof Long)
+          return -((Long) value);
+
+        return -((Double) value);
 
       default:
         return !((boolean) value);
@@ -74,9 +174,9 @@ class Interpreter extends MangoBaseVisitor<Object> {
 
     if (left instanceof Long && right instanceof Long) {
       switch (ctx.op.getType()) {
-        case 24:
-          return (long) left * (long) right;
         case 25:
+          return (long) left * (long) right;
+        case 26:
           if ((long) right == 0)
             new RuntimeError("can not divide by 0",
               new Source(Runner.file, ctx.op.getLine(), ctx.op.getCharPositionInLine() + 1));
@@ -104,7 +204,7 @@ class Interpreter extends MangoBaseVisitor<Object> {
     Object left = visit(ctx.left);
     Object right = visit(ctx.right);
 
-    if (ctx.op.getType() == 19) {
+    if (ctx.op.getType() == 22) {
       if (left instanceof String)
         return ((String) left) + ((String) right);
       else if (left instanceof Long && right instanceof Long)
@@ -125,13 +225,13 @@ class Interpreter extends MangoBaseVisitor<Object> {
     Number right = (Number) visit(ctx.right);
 
     switch (ctx.op.getType()) {
-      case 27:
+      case 28:
         return left.doubleValue() > right.doubleValue();
       
-      case 28:
+      case 29:
         return left.doubleValue() < right.doubleValue();
 
-      case 29:
+      case 30:
         return left.doubleValue() >= right.doubleValue();
       
       default:
@@ -144,7 +244,7 @@ class Interpreter extends MangoBaseVisitor<Object> {
     Object left = visit(ctx.left);
     Object right = visit(ctx.right);
 
-    if (ctx.op.getType() == 31) {
+    if (ctx.op.getType() == 32) {
       if (left instanceof Number && right instanceof Number)
         return ((Number) left).doubleValue() == ((Number) right).doubleValue();
       else if (left instanceof String && right instanceof String)
@@ -167,10 +267,34 @@ class Interpreter extends MangoBaseVisitor<Object> {
 
   @Override
   public Object visitLogicExpr(MangoParser.LogicExprContext ctx) {
-    if (ctx.op.getType() == 33)
+    if (ctx.op.getType() == 34)
       return (boolean) visit(ctx.left) && (boolean) visit(ctx.right);
 
     return (boolean) visit(ctx.left) || (boolean) visit(ctx.right);
+  }
+
+  @Override
+  public Object visitNullishExpr(MangoParser.NullishExprContext ctx) {
+    Object left = visit(ctx.left);
+
+    return left != null? left : visit(ctx.right);
+  }
+
+  @Override
+  public Object visitCastExpr(MangoParser.CastExprContext ctx) {
+    Object left = visit(ctx.left);
+    Object type = visit(ctx.right);
+
+    if (ctx.right instanceof MangoParser.NullTypeContext && left == null)
+      return null;
+    else if (ctx.right instanceof MangoParser.NullableTypeContext) {
+      if (left == null || validCast(left, type)) return left;
+    }
+    else if (validCast(left, type))
+      return left;
+
+    return new RuntimeError("cannot cast value '" + left + "' to type '" + ctx.right.getText() + "'",
+      new Source(Runner.file, ctx.start.getLine(), ctx.start.getCharPositionInLine() + 1));
   }
 
   @Override
@@ -180,28 +304,42 @@ class Interpreter extends MangoBaseVisitor<Object> {
 
   @Override
   public Object visitAssignmentExpr(MangoParser.AssignmentExprContext ctx) {
+    if (ctx.op.getType() == 6)
+      return assign(ctx.left, visit(ctx.right));
+
     Object left = visit(ctx.left);
     Object right = visit(ctx.right);
 
     switch (ctx.op.getType()) {
-      case 6:
-        left = right;
-        System.out.println(stack.peek() + " " + left);
-
-      case 36:
-        return left instanceof Long? right = ((long) left) + ((long) right) : (right = ((double) left) + ((double) right));
-
-      case 37:
-        return left instanceof Long? right = ((long) left) - ((long) right) : (right = ((double) left) - ((double) right));
-      
       case 38:
-        return left instanceof Long? right = ((long) left) * ((long) right) : (right = ((double) left) * ((double) right));
+        if (left instanceof Long)
+          return assign(ctx.left, (Long) left + (Long) right);
+        
+        return assign(ctx.left, (Double) left + (Double) right);
 
       case 39:
-        return left instanceof Long? right = ((long) left) / ((long) right) : (right = ((double) left) / ((double) right));
+        if (left instanceof Long)
+          return assign(ctx.left, (Long) left - (Long) right);
+        
+        return assign(ctx.left, (Double) left - (Double) right);
+      
+      case 40:
+        if (left instanceof Long)
+          return assign(ctx.left, (Long) left * (Long) right);
+        
+        return assign(ctx.left, (Double) left * (Double) right);
+
+      case 41:
+        if (left instanceof Long)
+          return assign(ctx.left, (Long) left / (Long) right);
+        
+        return assign(ctx.left, (Double) left / (Double) right);
 
       default:
-        return left instanceof Long? right = ((long) left) % ((long) right) : (right = ((double) left) % ((double) right));
+        if (left instanceof Long)
+          return assign(ctx.left, (Long) left % (Long) right);
+        
+        return assign(ctx.left, (Double) left % (Double) right);
     }
   }
 
@@ -252,7 +390,7 @@ class Interpreter extends MangoBaseVisitor<Object> {
 
   @Override
   public Boolean visitBoolLiteral(MangoParser.BoolLiteralContext ctx) {
-    return ctx.start.getType() == 40? true : false;
+    return ctx.start.getType() == 43? true : false;
   }
 
 	@Override
@@ -263,15 +401,54 @@ class Interpreter extends MangoBaseVisitor<Object> {
       return list;
 
     List<ParseTree> children = ctx.array.children;
-    for (int i = 0; i < children.size(); i += 2) {
+    for (int i = 0; i < children.size(); i += 2)
       list.add(visit(children.get(i)));
-    }
 
     return list;
   }
 
-  @Override
-  public Object visitNullLiteral(MangoParser.NullLiteralContext ctx) {
-    return null;
+  @SuppressWarnings("unchecked")
+  private Object assign(MangoParser.ExpressionContext ctx, Object value) {
+    if (ctx instanceof MangoParser.VarExprContext) {
+      String name = ((MangoParser.VarExprContext) ctx).ID().getText();
+
+      for (HashMap<String, Object> frame : stack) {
+        if (frame.containsKey(name)) {
+          frame.put(name, value);
+          return value;
+        }
+      }
+    }
+
+    MangoParser.ArrayAccessContext access = (MangoParser.ArrayAccessContext) ctx;
+    ArrayList<Object> array = (ArrayList<Object>) visit(ctx.getChild(0));
+    long index = (long) visit(ctx.getChild(2));
+
+    if (index < 0 || array.size() <= index) {
+      new RuntimeError("index " + index + " out of range for length " + array.size(),
+        new Source(Runner.file, access.index.start.getLine(), access.start.getCharPositionInLine() + 1));
+    }
+
+    array.set((int) index, value);
+    return value;
+  }
+
+  @SuppressWarnings("unchecked")
+  private boolean validCast(Object obj, Object type) {
+    if (type instanceof Class) {
+      if (obj instanceof ArrayList) {
+        for (Object e : (ArrayList<?>) obj)
+          if (!validCast(e, type)) return false;
+
+        return true;
+      }
+
+      return ((Class<?>) type).isInstance(obj);
+    }
+
+    for (Class<?> c : ((HashSet<Class<?>>) type))
+      if (validCast(obj, c)) return true;
+
+    return false;
   }
 }
