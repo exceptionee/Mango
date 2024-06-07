@@ -10,39 +10,41 @@ public class TypeChecker extends MangoBaseVisitor<Type> {
   }
 
   @Override
-  public Type visitProgram(MangoParser.ProgramContext ctx) {
-    if (ctx.children.size() == 2)
-      return visit(ctx.children.getFirst());
-
-    return super.visitProgram(ctx);
-  }
-
-  @Override
   public Type visitVariable(MangoParser.VariableContext ctx) {
-    String name = ctx.ID().getText();
-
-    if (stack.peek().containsKey(name)) {
-      new TypeError("'" + name + "' has already been declared", 
-        new Source(Runner.file, ctx.ID().getSymbol().getLine(), ctx.ID().getSymbol().getCharPositionInLine() + 1));
+    if (stack.peek().containsKey(ctx.name.getText())) {
+      new TypeError("'" + ctx.name.getText() + "' has already been declared",
+        new Source(Runner.file, ctx.name.getLine(), ctx.name.getCharPositionInLine() + 1));
       return Type.ERROR;
     }
 
     Type valueType = (ctx.value != null)? visit(ctx.value) : Type.Primitive.NULL;
-    Type type = (ctx.type() != null)? visit(ctx.type()) :
-      (ctx.value != null)? valueType : Type.ANY;
+    Type type;
 
-    if (type != Type.ERROR && !type.superset(valueType)) {
+    if (valueType == Type.ERROR)
       type = Type.ERROR;
-      new TypeError("cannot assign type '" + valueType + "' to type '" + type + "'", 
-        new Source(Runner.file, ctx.ID().getSymbol().getLine(), ctx.ID().getSymbol().getCharPositionInLine() + 1));
+    else {
+      type = ctx.type() != null?
+        visit(ctx.type()) : (ctx.value != null)? valueType : Type.ANY;
     }
 
-    MangoParser.VariableStatementContext s = (MangoParser.VariableStatementContext) ctx.parent.parent;
-    stack.peek().put(
-      ctx.name.getText(),
-      s.modifier.getType() == 1? new Symbol.Var(type) : new Symbol.Const(type)
-    );
+    if (type != Type.ERROR && valueType != Type.ERROR && !type.superset(valueType)) {
+      new TypeError("cannot assign type '" + valueType + "' to type '" + type + "'",
+        new Source(Runner.file, ctx.name.getLine(), ctx.name.getCharPositionInLine() + 1));
+      type = Type.ERROR;
+    }
 
+    if (((MangoParser.VariableStatementContext) ctx.parent.parent).modifier.getType() == 1) {
+      stack.peek().put(ctx.name.getText(), new Symbol.Var(type));
+      return type;
+    }
+
+    if (ctx.value == null) {
+      new TypeError("const declaration '" + ctx.name.getText() + "' must be initialized", 
+        new Source(Runner.file, ctx.name.getLine(), ctx.name.getCharPositionInLine() + 1));
+      valueType = Type.ERROR;
+    }
+
+    stack.peek().put(ctx.name.getText(), new Symbol.Const(valueType));
     return type;
   }
 
@@ -58,6 +60,11 @@ public class TypeChecker extends MangoBaseVisitor<Type> {
       return Type.Primitive.NULL;
     else
       return new Type.Union(type, Type.Primitive.NULL);
+  }
+  
+  @Override
+  public Type visitArrayType(MangoParser.ArrayTypeContext ctx) {
+    return new Type.Array(visit(ctx.type()));
   }
 
   @Override
@@ -78,11 +85,6 @@ public class TypeChecker extends MangoBaseVisitor<Type> {
   @Override
   public Type visitParenType(MangoParser.ParenTypeContext ctx) {
     return visit(ctx.type());
-  }
-
-  @Override
-  public Type visitArrayType(MangoParser.ArrayTypeContext ctx) {
-    return new Type.Array(visit(ctx.type()));
   }
 
   @Override
@@ -118,11 +120,6 @@ public class TypeChecker extends MangoBaseVisitor<Type> {
   @Override
   public Type visitNullType(MangoParser.NullTypeContext ctx) {
     return Type.Primitive.NULL;
-  }
-
-  @Override
-  public Type visitExpressionStatement(MangoParser.ExpressionStatementContext ctx) {
-    return visit(ctx.children.getFirst());
   }
 
   @Override
@@ -329,6 +326,11 @@ public class TypeChecker extends MangoBaseVisitor<Type> {
 
     if (left == Type.ERROR || right == Type.ERROR)
       return Type.ERROR;
+    else if (!left.superset(right)) {
+      new TypeError("cannot cast from '" + left + "' to '" + right + "'",
+        new Source(Runner.file, ctx.right.start.getLine(), ctx.right.start.getCharPositionInLine() + 1));
+      return Type.ERROR;
+    }
 
     return right;
   }

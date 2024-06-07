@@ -30,6 +30,13 @@ public interface MangoVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitExpressionStatement(MangoParser.ExpressionStatementContext ctx);
 	/**
+	 * Visit a parse tree produced by the {@code EmptyStatement}
+	 * labeled alternative in {@link MangoParser#statement}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEmptyStatement(MangoParser.EmptyStatementContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link MangoParser#variableList}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

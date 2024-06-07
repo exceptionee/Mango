@@ -1,8 +1,6 @@
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.Arrays;
-import org.antlr.v4.gui.TreeViewer;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.IntStream;
@@ -25,6 +23,7 @@ public class Runner implements Runnable {
   private static MangoLexer lexer = new MangoLexer(null);
   private static MangoParser parser = new MangoParser(null);
   private static TypeChecker typeChecker = new TypeChecker();
+  private static Interpreter interpreter = new Interpreter();
 
   static {
     lexer.removeErrorListeners();
@@ -49,10 +48,10 @@ public class Runner implements Runnable {
 
         try {
           Runner.file = file;
-          Tree tree = interpret(CharStreams.fromFileName(file));
+          interpret(CharStreams.fromFileName(file));
 
-          if (gui)
-            new TreeViewer(Arrays.asList(MangoParser.ruleNames), tree).open();
+          // if (gui)
+          //   new TreeViewer(Arrays.asList(MangoParser.ruleNames), tree).open();
         }
         catch (IOException e) {
           System.out.println("error: file not found " + file);
@@ -72,12 +71,10 @@ public class Runner implements Runnable {
           else if (input.isEmpty())
             continue;
     
-          lexer.setInputStream(CharStreams.fromString(input));
-          parser.setTokenStream(new CommonTokenStream(lexer));
-          Type result = typeChecker.visitProgram(parser.program());
+          Object result = interpret(CharStreams.fromString(input));
     
           if (!Error.error)
-            System.out.println("\u001b[38;2;0;140;40m" + result + "\u001B[0m");
+            System.out.println("\u001b[38;2;225;160;70m" + result + "\u001B[0m");
           else {
             Error.error = false;
             typeChecker.stack.getFirst().entrySet()
@@ -91,13 +88,13 @@ public class Runner implements Runnable {
     }
   }
 
-  private static Tree interpret(IntStream stream) {
+  private static Object interpret(IntStream stream) {
     lexer.setInputStream(stream);
     parser.setTokenStream(new CommonTokenStream(lexer));
 
     Tree tree = parser.program();
 
     typeChecker.visit((ParseTree) tree);
-    return tree;
+    return !Error.error? interpreter.visit((ParseTree) tree) : null;
   }
 }

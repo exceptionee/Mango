@@ -37,8 +37,8 @@ public class MangoParser extends Parser {
 
 	private static String[] makeLiteralNames() {
 		return new String[] {
-			null, "'var'", "'const'", "';'", "','", "':'", "'='", "'?'", "'|'", "'('", 
-			"')'", "'['", "']'", "'any'", "'int'", "'float'", "'string'", "'char'", 
+			null, "'var'", "'const'", "';'", "','", "':'", "'='", "'?'", "'['", "']'", 
+			"'|'", "'('", "')'", "'any'", "'int'", "'float'", "'string'", "'char'", 
 			"'bool'", "'null'", "'++'", "'--'", "'+'", "'-'", "'!'", "'*'", "'/'", 
 			"'%'", "'>'", "'<'", "'>='", "'<='", "'=='", "'!='", "'&&'", "'||'", 
 			"'??'", "'as'", "'+='", "'-='", "'*='", "'/='", "'%='", "'true'", "'false'"
@@ -135,7 +135,7 @@ public class MangoParser extends Parser {
 			setState(21);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
-			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 8752112590129670L) != 0)) {
+			while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 8752112590129422L) != 0)) {
 				{
 				{
 				setState(18);
@@ -198,13 +198,22 @@ public class MangoParser extends Parser {
 			else return visitor.visitChildren(this);
 		}
 	}
+	@SuppressWarnings("CheckReturnValue")
+	public static class EmptyStatementContext extends StatementContext {
+		public EmptyStatementContext(StatementContext ctx) { copyFrom(ctx); }
+		@Override
+		public <T> T accept(ParseTreeVisitor<? extends T> visitor) {
+			if ( visitor instanceof MangoVisitor ) return ((MangoVisitor<? extends T>)visitor).visitEmptyStatement(this);
+			else return visitor.visitChildren(this);
+		}
+	}
 
 	public final StatementContext statement() throws RecognitionException {
 		StatementContext _localctx = new StatementContext(_ctx, getState());
 		enterRule(_localctx, 2, RULE_statement);
 		int _la;
 		try {
-			setState(33);
+			setState(34);
 			_errHandler.sync(this);
 			switch (_input.LA(1)) {
 			case T__0:
@@ -229,7 +238,7 @@ public class MangoParser extends Parser {
 				match(T__2);
 				}
 				break;
-			case T__8:
+			case T__7:
 			case T__10:
 			case T__18:
 			case T__19:
@@ -250,6 +259,14 @@ public class MangoParser extends Parser {
 				setState(30);
 				expression(0);
 				setState(31);
+				match(T__2);
+				}
+				break;
+			case T__2:
+				_localctx = new EmptyStatementContext(_localctx);
+				enterOuterAlt(_localctx, 3);
+				{
+				setState(33);
 				match(T__2);
 				}
 				break;
@@ -294,21 +311,21 @@ public class MangoParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(35);
+			setState(36);
 			variable();
-			setState(40);
+			setState(41);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
 			while (_la==T__3) {
 				{
 				{
-				setState(36);
-				match(T__3);
 				setState(37);
+				match(T__3);
+				setState(38);
 				variable();
 				}
 				}
-				setState(42);
+				setState(43);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
 			}
@@ -354,28 +371,28 @@ public class MangoParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(43);
+			setState(44);
 			((VariableContext)_localctx).name = match(ID);
-			setState(46);
+			setState(47);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
 			if (_la==T__4) {
 				{
-				setState(44);
-				match(T__4);
 				setState(45);
+				match(T__4);
+				setState(46);
 				type(0);
 				}
 			}
 
-			setState(50);
+			setState(51);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
 			if (_la==T__5) {
 				{
-				setState(48);
-				match(T__5);
 				setState(49);
+				match(T__5);
+				setState(50);
 				((VariableContext)_localctx).value = expression(0);
 				}
 			}
@@ -537,21 +554,21 @@ public class MangoParser extends Parser {
 			int _alt;
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(64);
+			setState(65);
 			_errHandler.sync(this);
 			switch (_input.LA(1)) {
-			case T__8:
+			case T__10:
 				{
 				_localctx = new ParenTypeContext(_localctx);
 				_ctx = _localctx;
 				_prevctx = _localctx;
 
-				setState(53);
-				match(T__8);
 				setState(54);
-				type(0);
+				match(T__10);
 				setState(55);
-				match(T__9);
+				type(0);
+				setState(56);
+				match(T__11);
 				}
 				break;
 			case T__12:
@@ -559,7 +576,7 @@ public class MangoParser extends Parser {
 				_localctx = new AnyTypeContext(_localctx);
 				_ctx = _localctx;
 				_prevctx = _localctx;
-				setState(57);
+				setState(58);
 				match(T__12);
 				}
 				break;
@@ -568,7 +585,7 @@ public class MangoParser extends Parser {
 				_localctx = new IntTypeContext(_localctx);
 				_ctx = _localctx;
 				_prevctx = _localctx;
-				setState(58);
+				setState(59);
 				match(T__13);
 				}
 				break;
@@ -577,7 +594,7 @@ public class MangoParser extends Parser {
 				_localctx = new FloatTypeContext(_localctx);
 				_ctx = _localctx;
 				_prevctx = _localctx;
-				setState(59);
+				setState(60);
 				match(T__14);
 				}
 				break;
@@ -586,7 +603,7 @@ public class MangoParser extends Parser {
 				_localctx = new StringTypeContext(_localctx);
 				_ctx = _localctx;
 				_prevctx = _localctx;
-				setState(60);
+				setState(61);
 				match(T__15);
 				}
 				break;
@@ -595,7 +612,7 @@ public class MangoParser extends Parser {
 				_localctx = new CharTypeContext(_localctx);
 				_ctx = _localctx;
 				_prevctx = _localctx;
-				setState(61);
+				setState(62);
 				match(T__16);
 				}
 				break;
@@ -604,7 +621,7 @@ public class MangoParser extends Parser {
 				_localctx = new BoolTypeContext(_localctx);
 				_ctx = _localctx;
 				_prevctx = _localctx;
-				setState(62);
+				setState(63);
 				match(T__17);
 				}
 				break;
@@ -613,7 +630,7 @@ public class MangoParser extends Parser {
 				_localctx = new NullTypeContext(_localctx);
 				_ctx = _localctx;
 				_prevctx = _localctx;
-				setState(63);
+				setState(64);
 				match(T__18);
 				}
 				break;
@@ -621,7 +638,7 @@ public class MangoParser extends Parser {
 				throw new NoViableAltException(this);
 			}
 			_ctx.stop = _input.LT(-1);
-			setState(76);
+			setState(77);
 			_errHandler.sync(this);
 			_alt = getInterpreter().adaptivePredict(_input,7,_ctx);
 			while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER ) {
@@ -629,7 +646,7 @@ public class MangoParser extends Parser {
 					if ( _parseListeners!=null ) triggerExitRuleEvent();
 					_prevctx = _localctx;
 					{
-					setState(74);
+					setState(75);
 					_errHandler.sync(this);
 					switch ( getInterpreter().adaptivePredict(_input,6,_ctx) ) {
 					case 1:
@@ -637,21 +654,21 @@ public class MangoParser extends Parser {
 						_localctx = new UnionTypeContext(new TypeContext(_parentctx, _parentState));
 						((UnionTypeContext)_localctx).left = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_type);
-						setState(66);
-						if (!(precpred(_ctx, 10))) throw new FailedPredicateException(this, "precpred(_ctx, 10)");
 						setState(67);
-						match(T__7);
+						if (!(precpred(_ctx, 9))) throw new FailedPredicateException(this, "precpred(_ctx, 9)");
 						setState(68);
-						((UnionTypeContext)_localctx).right = type(11);
+						match(T__9);
+						setState(69);
+						((UnionTypeContext)_localctx).right = type(10);
 						}
 						break;
 					case 2:
 						{
 						_localctx = new NullableTypeContext(new TypeContext(_parentctx, _parentState));
 						pushNewRecursionContext(_localctx, _startState, RULE_type);
-						setState(69);
-						if (!(precpred(_ctx, 11))) throw new FailedPredicateException(this, "precpred(_ctx, 11)");
 						setState(70);
+						if (!(precpred(_ctx, 11))) throw new FailedPredicateException(this, "precpred(_ctx, 11)");
+						setState(71);
 						match(T__6);
 						}
 						break;
@@ -659,18 +676,18 @@ public class MangoParser extends Parser {
 						{
 						_localctx = new ArrayTypeContext(new TypeContext(_parentctx, _parentState));
 						pushNewRecursionContext(_localctx, _startState, RULE_type);
-						setState(71);
-						if (!(precpred(_ctx, 8))) throw new FailedPredicateException(this, "precpred(_ctx, 8)");
 						setState(72);
-						match(T__10);
+						if (!(precpred(_ctx, 10))) throw new FailedPredicateException(this, "precpred(_ctx, 10)");
 						setState(73);
-						match(T__11);
+						match(T__7);
+						setState(74);
+						match(T__8);
 						}
 						break;
 					}
 					} 
 				}
-				setState(78);
+				setState(79);
 				_errHandler.sync(this);
 				_alt = getInterpreter().adaptivePredict(_input,7,_ctx);
 			}
@@ -713,21 +730,21 @@ public class MangoParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(79);
+			setState(80);
 			type(0);
-			setState(84);
+			setState(85);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
 			while (_la==T__3) {
 				{
 				{
-				setState(80);
-				match(T__3);
 				setState(81);
+				match(T__3);
+				setState(82);
 				type(0);
 				}
 				}
-				setState(86);
+				setState(87);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
 			}
@@ -1013,24 +1030,24 @@ public class MangoParser extends Parser {
 			int _alt;
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(96);
+			setState(97);
 			_errHandler.sync(this);
 			switch (_input.LA(1)) {
-			case T__8:
+			case T__10:
 				{
 				_localctx = new ParenExprContext(_localctx);
 				_ctx = _localctx;
 				_prevctx = _localctx;
 
-				setState(88);
-				match(T__8);
 				setState(89);
-				((ParenExprContext)_localctx).expr = expression(0);
+				match(T__10);
 				setState(90);
-				match(T__9);
+				((ParenExprContext)_localctx).expr = expression(0);
+				setState(91);
+				match(T__11);
 				}
 				break;
-			case T__10:
+			case T__7:
 			case T__18:
 			case T__42:
 			case T__43:
@@ -1042,7 +1059,7 @@ public class MangoParser extends Parser {
 				_localctx = new LiteralExprContext(_localctx);
 				_ctx = _localctx;
 				_prevctx = _localctx;
-				setState(92);
+				setState(93);
 				literal();
 				}
 				break;
@@ -1051,7 +1068,7 @@ public class MangoParser extends Parser {
 				_localctx = new VarExprContext(_localctx);
 				_ctx = _localctx;
 				_prevctx = _localctx;
-				setState(93);
+				setState(94);
 				match(ID);
 				}
 				break;
@@ -1064,7 +1081,7 @@ public class MangoParser extends Parser {
 				_localctx = new UnaryExprContext(_localctx);
 				_ctx = _localctx;
 				_prevctx = _localctx;
-				setState(94);
+				setState(95);
 				((UnaryExprContext)_localctx).op = _input.LT(1);
 				_la = _input.LA(1);
 				if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 32505856L) != 0)) ) {
@@ -1075,7 +1092,7 @@ public class MangoParser extends Parser {
 					_errHandler.reportMatch(this);
 					consume();
 				}
-				setState(95);
+				setState(96);
 				((UnaryExprContext)_localctx).expr = expression(10);
 				}
 				break;
@@ -1083,7 +1100,7 @@ public class MangoParser extends Parser {
 				throw new NoViableAltException(this);
 			}
 			_ctx.stop = _input.LT(-1);
-			setState(137);
+			setState(138);
 			_errHandler.sync(this);
 			_alt = getInterpreter().adaptivePredict(_input,11,_ctx);
 			while ( _alt!=2 && _alt!=org.antlr.v4.runtime.atn.ATN.INVALID_ALT_NUMBER ) {
@@ -1091,7 +1108,7 @@ public class MangoParser extends Parser {
 					if ( _parseListeners!=null ) triggerExitRuleEvent();
 					_prevctx = _localctx;
 					{
-					setState(135);
+					setState(136);
 					_errHandler.sync(this);
 					switch ( getInterpreter().adaptivePredict(_input,10,_ctx) ) {
 					case 1:
@@ -1099,9 +1116,9 @@ public class MangoParser extends Parser {
 						_localctx = new SecondaryExprContext(new ExpressionContext(_parentctx, _parentState));
 						((SecondaryExprContext)_localctx).left = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
-						setState(98);
-						if (!(precpred(_ctx, 9))) throw new FailedPredicateException(this, "precpred(_ctx, 9)");
 						setState(99);
+						if (!(precpred(_ctx, 9))) throw new FailedPredicateException(this, "precpred(_ctx, 9)");
+						setState(100);
 						((SecondaryExprContext)_localctx).op = _input.LT(1);
 						_la = _input.LA(1);
 						if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 234881024L) != 0)) ) {
@@ -1112,7 +1129,7 @@ public class MangoParser extends Parser {
 							_errHandler.reportMatch(this);
 							consume();
 						}
-						setState(100);
+						setState(101);
 						((SecondaryExprContext)_localctx).right = expression(10);
 						}
 						break;
@@ -1121,9 +1138,9 @@ public class MangoParser extends Parser {
 						_localctx = new PrimaryExprContext(new ExpressionContext(_parentctx, _parentState));
 						((PrimaryExprContext)_localctx).left = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
-						setState(101);
-						if (!(precpred(_ctx, 8))) throw new FailedPredicateException(this, "precpred(_ctx, 8)");
 						setState(102);
+						if (!(precpred(_ctx, 8))) throw new FailedPredicateException(this, "precpred(_ctx, 8)");
+						setState(103);
 						((PrimaryExprContext)_localctx).op = _input.LT(1);
 						_la = _input.LA(1);
 						if ( !(_la==T__21 || _la==T__22) ) {
@@ -1134,7 +1151,7 @@ public class MangoParser extends Parser {
 							_errHandler.reportMatch(this);
 							consume();
 						}
-						setState(103);
+						setState(104);
 						((PrimaryExprContext)_localctx).right = expression(9);
 						}
 						break;
@@ -1143,9 +1160,9 @@ public class MangoParser extends Parser {
 						_localctx = new ComparativeExprContext(new ExpressionContext(_parentctx, _parentState));
 						((ComparativeExprContext)_localctx).left = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
-						setState(104);
-						if (!(precpred(_ctx, 7))) throw new FailedPredicateException(this, "precpred(_ctx, 7)");
 						setState(105);
+						if (!(precpred(_ctx, 7))) throw new FailedPredicateException(this, "precpred(_ctx, 7)");
+						setState(106);
 						((ComparativeExprContext)_localctx).op = _input.LT(1);
 						_la = _input.LA(1);
 						if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 4026531840L) != 0)) ) {
@@ -1156,7 +1173,7 @@ public class MangoParser extends Parser {
 							_errHandler.reportMatch(this);
 							consume();
 						}
-						setState(106);
+						setState(107);
 						((ComparativeExprContext)_localctx).right = expression(8);
 						}
 						break;
@@ -1165,9 +1182,9 @@ public class MangoParser extends Parser {
 						_localctx = new EqualityExprContext(new ExpressionContext(_parentctx, _parentState));
 						((EqualityExprContext)_localctx).left = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
-						setState(107);
-						if (!(precpred(_ctx, 6))) throw new FailedPredicateException(this, "precpred(_ctx, 6)");
 						setState(108);
+						if (!(precpred(_ctx, 6))) throw new FailedPredicateException(this, "precpred(_ctx, 6)");
+						setState(109);
 						((EqualityExprContext)_localctx).op = _input.LT(1);
 						_la = _input.LA(1);
 						if ( !(_la==T__31 || _la==T__32) ) {
@@ -1178,7 +1195,7 @@ public class MangoParser extends Parser {
 							_errHandler.reportMatch(this);
 							consume();
 						}
-						setState(109);
+						setState(110);
 						((EqualityExprContext)_localctx).right = expression(7);
 						}
 						break;
@@ -1187,9 +1204,9 @@ public class MangoParser extends Parser {
 						_localctx = new LogicExprContext(new ExpressionContext(_parentctx, _parentState));
 						((LogicExprContext)_localctx).left = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
-						setState(110);
-						if (!(precpred(_ctx, 5))) throw new FailedPredicateException(this, "precpred(_ctx, 5)");
 						setState(111);
+						if (!(precpred(_ctx, 5))) throw new FailedPredicateException(this, "precpred(_ctx, 5)");
+						setState(112);
 						((LogicExprContext)_localctx).op = _input.LT(1);
 						_la = _input.LA(1);
 						if ( !(_la==T__33 || _la==T__34) ) {
@@ -1200,7 +1217,7 @@ public class MangoParser extends Parser {
 							_errHandler.reportMatch(this);
 							consume();
 						}
-						setState(112);
+						setState(113);
 						((LogicExprContext)_localctx).right = expression(6);
 						}
 						break;
@@ -1209,11 +1226,11 @@ public class MangoParser extends Parser {
 						_localctx = new NullishExprContext(new ExpressionContext(_parentctx, _parentState));
 						((NullishExprContext)_localctx).left = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
-						setState(113);
-						if (!(precpred(_ctx, 4))) throw new FailedPredicateException(this, "precpred(_ctx, 4)");
 						setState(114);
-						match(T__35);
+						if (!(precpred(_ctx, 4))) throw new FailedPredicateException(this, "precpred(_ctx, 4)");
 						setState(115);
+						match(T__35);
+						setState(116);
 						((NullishExprContext)_localctx).right = expression(5);
 						}
 						break;
@@ -1222,15 +1239,15 @@ public class MangoParser extends Parser {
 						_localctx = new TernaryExprContext(new ExpressionContext(_parentctx, _parentState));
 						((TernaryExprContext)_localctx).condition = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
-						setState(116);
-						if (!(precpred(_ctx, 2))) throw new FailedPredicateException(this, "precpred(_ctx, 2)");
 						setState(117);
-						match(T__6);
+						if (!(precpred(_ctx, 2))) throw new FailedPredicateException(this, "precpred(_ctx, 2)");
 						setState(118);
-						((TernaryExprContext)_localctx).value = expression(0);
+						match(T__6);
 						setState(119);
-						match(T__4);
+						((TernaryExprContext)_localctx).value = expression(0);
 						setState(120);
+						match(T__4);
+						setState(121);
 						((TernaryExprContext)_localctx).default_ = expression(3);
 						}
 						break;
@@ -1239,9 +1256,9 @@ public class MangoParser extends Parser {
 						_localctx = new AssignmentExprContext(new ExpressionContext(_parentctx, _parentState));
 						((AssignmentExprContext)_localctx).left = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
-						setState(122);
-						if (!(precpred(_ctx, 1))) throw new FailedPredicateException(this, "precpred(_ctx, 1)");
 						setState(123);
+						if (!(precpred(_ctx, 1))) throw new FailedPredicateException(this, "precpred(_ctx, 1)");
+						setState(124);
 						((AssignmentExprContext)_localctx).op = _input.LT(1);
 						_la = _input.LA(1);
 						if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 8521215115328L) != 0)) ) {
@@ -1252,7 +1269,7 @@ public class MangoParser extends Parser {
 							_errHandler.reportMatch(this);
 							consume();
 						}
-						setState(124);
+						setState(125);
 						((AssignmentExprContext)_localctx).right = expression(2);
 						}
 						break;
@@ -1261,14 +1278,14 @@ public class MangoParser extends Parser {
 						_localctx = new ArrayAccessContext(new ExpressionContext(_parentctx, _parentState));
 						((ArrayAccessContext)_localctx).array = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
-						setState(125);
-						if (!(precpred(_ctx, 14))) throw new FailedPredicateException(this, "precpred(_ctx, 14)");
 						setState(126);
-						match(T__10);
+						if (!(precpred(_ctx, 14))) throw new FailedPredicateException(this, "precpred(_ctx, 14)");
 						setState(127);
-						((ArrayAccessContext)_localctx).index = expression(0);
+						match(T__7);
 						setState(128);
-						match(T__11);
+						((ArrayAccessContext)_localctx).index = expression(0);
+						setState(129);
+						match(T__8);
 						}
 						break;
 					case 10:
@@ -1276,9 +1293,9 @@ public class MangoParser extends Parser {
 						_localctx = new PostFixExprContext(new ExpressionContext(_parentctx, _parentState));
 						((PostFixExprContext)_localctx).expr = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
-						setState(130);
-						if (!(precpred(_ctx, 11))) throw new FailedPredicateException(this, "precpred(_ctx, 11)");
 						setState(131);
+						if (!(precpred(_ctx, 11))) throw new FailedPredicateException(this, "precpred(_ctx, 11)");
+						setState(132);
 						((PostFixExprContext)_localctx).op = _input.LT(1);
 						_la = _input.LA(1);
 						if ( !(_la==T__19 || _la==T__20) ) {
@@ -1296,18 +1313,18 @@ public class MangoParser extends Parser {
 						_localctx = new CastExprContext(new ExpressionContext(_parentctx, _parentState));
 						((CastExprContext)_localctx).left = _prevctx;
 						pushNewRecursionContext(_localctx, _startState, RULE_expression);
-						setState(132);
-						if (!(precpred(_ctx, 3))) throw new FailedPredicateException(this, "precpred(_ctx, 3)");
 						setState(133);
-						match(T__36);
+						if (!(precpred(_ctx, 3))) throw new FailedPredicateException(this, "precpred(_ctx, 3)");
 						setState(134);
+						match(T__36);
+						setState(135);
 						((CastExprContext)_localctx).right = type(0);
 						}
 						break;
 					}
 					} 
 				}
-				setState(139);
+				setState(140);
 				_errHandler.sync(this);
 				_alt = getInterpreter().adaptivePredict(_input,11,_ctx);
 			}
@@ -1350,21 +1367,21 @@ public class MangoParser extends Parser {
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
-			setState(140);
+			setState(141);
 			expression(0);
-			setState(145);
+			setState(146);
 			_errHandler.sync(this);
 			_la = _input.LA(1);
 			while (_la==T__3) {
 				{
 				{
-				setState(141);
-				match(T__3);
 				setState(142);
+				match(T__3);
+				setState(143);
 				expression(0);
 				}
 				}
-				setState(147);
+				setState(148);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
 			}
@@ -1470,14 +1487,14 @@ public class MangoParser extends Parser {
 		enterRule(_localctx, 16, RULE_literal);
 		int _la;
 		try {
-			setState(159);
+			setState(160);
 			_errHandler.sync(this);
 			switch (_input.LA(1)) {
 			case INT:
 				_localctx = new IntLiteralContext(_localctx);
 				enterOuterAlt(_localctx, 1);
 				{
-				setState(148);
+				setState(149);
 				match(INT);
 				}
 				break;
@@ -1485,7 +1502,7 @@ public class MangoParser extends Parser {
 				_localctx = new FloatLiteralContext(_localctx);
 				enterOuterAlt(_localctx, 2);
 				{
-				setState(149);
+				setState(150);
 				match(FLOAT);
 				}
 				break;
@@ -1493,7 +1510,7 @@ public class MangoParser extends Parser {
 				_localctx = new StringLiteralContext(_localctx);
 				enterOuterAlt(_localctx, 3);
 				{
-				setState(150);
+				setState(151);
 				match(STRING);
 				}
 				break;
@@ -1501,7 +1518,7 @@ public class MangoParser extends Parser {
 				_localctx = new CharLiteralContext(_localctx);
 				enterOuterAlt(_localctx, 4);
 				{
-				setState(151);
+				setState(152);
 				match(CHAR);
 				}
 				break;
@@ -1510,7 +1527,7 @@ public class MangoParser extends Parser {
 				_localctx = new BoolLiteralContext(_localctx);
 				enterOuterAlt(_localctx, 5);
 				{
-				setState(152);
+				setState(153);
 				_la = _input.LA(1);
 				if ( !(_la==T__42 || _la==T__43) ) {
 				_errHandler.recoverInline(this);
@@ -1522,31 +1539,31 @@ public class MangoParser extends Parser {
 				}
 				}
 				break;
-			case T__10:
+			case T__7:
 				_localctx = new ArrayLiteralContext(_localctx);
 				enterOuterAlt(_localctx, 6);
 				{
-				setState(153);
-				match(T__10);
-				setState(155);
+				setState(154);
+				match(T__7);
+				setState(156);
 				_errHandler.sync(this);
 				_la = _input.LA(1);
-				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 8752112590129664L) != 0)) {
+				if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 8752112590129408L) != 0)) {
 					{
-					setState(154);
+					setState(155);
 					((ArrayLiteralContext)_localctx).array = expressionList();
 					}
 				}
 
-				setState(157);
-				match(T__11);
+				setState(158);
+				match(T__8);
 				}
 				break;
 			case T__18:
 				_localctx = new NullLiteralContext(_localctx);
 				enterOuterAlt(_localctx, 7);
 				{
-				setState(158);
+				setState(159);
 				match(T__18);
 				}
 				break;
@@ -1577,11 +1594,11 @@ public class MangoParser extends Parser {
 	private boolean type_sempred(TypeContext _localctx, int predIndex) {
 		switch (predIndex) {
 		case 0:
-			return precpred(_ctx, 10);
+			return precpred(_ctx, 9);
 		case 1:
 			return precpred(_ctx, 11);
 		case 2:
-			return precpred(_ctx, 8);
+			return precpred(_ctx, 10);
 		}
 		return true;
 	}
@@ -1614,113 +1631,114 @@ public class MangoParser extends Parser {
 	}
 
 	public static final String _serializedATN =
-		"\u0004\u00014\u00a2\u0002\u0000\u0007\u0000\u0002\u0001\u0007\u0001\u0002"+
+		"\u0004\u00014\u00a3\u0002\u0000\u0007\u0000\u0002\u0001\u0007\u0001\u0002"+
 		"\u0002\u0007\u0002\u0002\u0003\u0007\u0003\u0002\u0004\u0007\u0004\u0002"+
 		"\u0005\u0007\u0005\u0002\u0006\u0007\u0006\u0002\u0007\u0007\u0007\u0002"+
 		"\b\u0007\b\u0001\u0000\u0005\u0000\u0014\b\u0000\n\u0000\f\u0000\u0017"+
 		"\t\u0000\u0001\u0000\u0001\u0000\u0001\u0001\u0001\u0001\u0001\u0001\u0001"+
-		"\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0003\u0001\"\b\u0001\u0001"+
-		"\u0002\u0001\u0002\u0001\u0002\u0005\u0002\'\b\u0002\n\u0002\f\u0002*"+
-		"\t\u0002\u0001\u0003\u0001\u0003\u0001\u0003\u0003\u0003/\b\u0003\u0001"+
-		"\u0003\u0001\u0003\u0003\u00033\b\u0003\u0001\u0004\u0001\u0004\u0001"+
-		"\u0004\u0001\u0004\u0001\u0004\u0001\u0004\u0001\u0004\u0001\u0004\u0001"+
-		"\u0004\u0001\u0004\u0001\u0004\u0001\u0004\u0003\u0004A\b\u0004\u0001"+
-		"\u0004\u0001\u0004\u0001\u0004\u0001\u0004\u0001\u0004\u0001\u0004\u0001"+
-		"\u0004\u0001\u0004\u0005\u0004K\b\u0004\n\u0004\f\u0004N\t\u0004\u0001"+
-		"\u0005\u0001\u0005\u0001\u0005\u0005\u0005S\b\u0005\n\u0005\f\u0005V\t"+
-		"\u0005\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001"+
-		"\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0003\u0006a\b\u0006\u0001"+
-		"\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001"+
-		"\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001"+
-		"\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001"+
-		"\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001"+
-		"\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001"+
-		"\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001"+
-		"\u0006\u0005\u0006\u0088\b\u0006\n\u0006\f\u0006\u008b\t\u0006\u0001\u0007"+
-		"\u0001\u0007\u0001\u0007\u0005\u0007\u0090\b\u0007\n\u0007\f\u0007\u0093"+
-		"\t\u0007\u0001\b\u0001\b\u0001\b\u0001\b\u0001\b\u0001\b\u0001\b\u0003"+
-		"\b\u009c\b\b\u0001\b\u0001\b\u0003\b\u00a0\b\b\u0001\b\u0000\u0002\b\f"+
-		"\t\u0000\u0002\u0004\u0006\b\n\f\u000e\u0010\u0000\n\u0001\u0000\u0001"+
+		"\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0001\u0003\u0001#\b"+
+		"\u0001\u0001\u0002\u0001\u0002\u0001\u0002\u0005\u0002(\b\u0002\n\u0002"+
+		"\f\u0002+\t\u0002\u0001\u0003\u0001\u0003\u0001\u0003\u0003\u00030\b\u0003"+
+		"\u0001\u0003\u0001\u0003\u0003\u00034\b\u0003\u0001\u0004\u0001\u0004"+
+		"\u0001\u0004\u0001\u0004\u0001\u0004\u0001\u0004\u0001\u0004\u0001\u0004"+
+		"\u0001\u0004\u0001\u0004\u0001\u0004\u0001\u0004\u0003\u0004B\b\u0004"+
+		"\u0001\u0004\u0001\u0004\u0001\u0004\u0001\u0004\u0001\u0004\u0001\u0004"+
+		"\u0001\u0004\u0001\u0004\u0005\u0004L\b\u0004\n\u0004\f\u0004O\t\u0004"+
+		"\u0001\u0005\u0001\u0005\u0001\u0005\u0005\u0005T\b\u0005\n\u0005\f\u0005"+
+		"W\t\u0005\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006"+
+		"\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0003\u0006b\b\u0006"+
+		"\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006"+
+		"\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006"+
+		"\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006"+
+		"\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006"+
+		"\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006"+
+		"\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006\u0001\u0006"+
+		"\u0001\u0006\u0005\u0006\u0089\b\u0006\n\u0006\f\u0006\u008c\t\u0006\u0001"+
+		"\u0007\u0001\u0007\u0001\u0007\u0005\u0007\u0091\b\u0007\n\u0007\f\u0007"+
+		"\u0094\t\u0007\u0001\b\u0001\b\u0001\b\u0001\b\u0001\b\u0001\b\u0001\b"+
+		"\u0003\b\u009d\b\b\u0001\b\u0001\b\u0003\b\u00a1\b\b\u0001\b\u0000\u0002"+
+		"\b\f\t\u0000\u0002\u0004\u0006\b\n\f\u000e\u0010\u0000\n\u0001\u0000\u0001"+
 		"\u0002\u0001\u0000\u0014\u0018\u0001\u0000\u0019\u001b\u0001\u0000\u0016"+
 		"\u0017\u0001\u0000\u001c\u001f\u0001\u0000 !\u0001\u0000\"#\u0002\u0000"+
-		"\u0006\u0006&*\u0001\u0000\u0014\u0015\u0001\u0000+,\u00be\u0000\u0015"+
-		"\u0001\u0000\u0000\u0000\u0002!\u0001\u0000\u0000\u0000\u0004#\u0001\u0000"+
-		"\u0000\u0000\u0006+\u0001\u0000\u0000\u0000\b@\u0001\u0000\u0000\u0000"+
-		"\nO\u0001\u0000\u0000\u0000\f`\u0001\u0000\u0000\u0000\u000e\u008c\u0001"+
-		"\u0000\u0000\u0000\u0010\u009f\u0001\u0000\u0000\u0000\u0012\u0014\u0003"+
-		"\u0002\u0001\u0000\u0013\u0012\u0001\u0000\u0000\u0000\u0014\u0017\u0001"+
-		"\u0000\u0000\u0000\u0015\u0013\u0001\u0000\u0000\u0000\u0015\u0016\u0001"+
-		"\u0000\u0000\u0000\u0016\u0018\u0001\u0000\u0000\u0000\u0017\u0015\u0001"+
-		"\u0000\u0000\u0000\u0018\u0019\u0005\u0000\u0000\u0001\u0019\u0001\u0001"+
-		"\u0000\u0000\u0000\u001a\u001b\u0007\u0000\u0000\u0000\u001b\u001c\u0003"+
-		"\u0004\u0002\u0000\u001c\u001d\u0005\u0003\u0000\u0000\u001d\"\u0001\u0000"+
-		"\u0000\u0000\u001e\u001f\u0003\f\u0006\u0000\u001f \u0005\u0003\u0000"+
-		"\u0000 \"\u0001\u0000\u0000\u0000!\u001a\u0001\u0000\u0000\u0000!\u001e"+
-		"\u0001\u0000\u0000\u0000\"\u0003\u0001\u0000\u0000\u0000#(\u0003\u0006"+
-		"\u0003\u0000$%\u0005\u0004\u0000\u0000%\'\u0003\u0006\u0003\u0000&$\u0001"+
-		"\u0000\u0000\u0000\'*\u0001\u0000\u0000\u0000(&\u0001\u0000\u0000\u0000"+
-		"()\u0001\u0000\u0000\u0000)\u0005\u0001\u0000\u0000\u0000*(\u0001\u0000"+
-		"\u0000\u0000+.\u00054\u0000\u0000,-\u0005\u0005\u0000\u0000-/\u0003\b"+
-		"\u0004\u0000.,\u0001\u0000\u0000\u0000./\u0001\u0000\u0000\u0000/2\u0001"+
-		"\u0000\u0000\u000001\u0005\u0006\u0000\u000013\u0003\f\u0006\u000020\u0001"+
-		"\u0000\u0000\u000023\u0001\u0000\u0000\u00003\u0007\u0001\u0000\u0000"+
-		"\u000045\u0006\u0004\uffff\uffff\u000056\u0005\t\u0000\u000067\u0003\b"+
-		"\u0004\u000078\u0005\n\u0000\u00008A\u0001\u0000\u0000\u00009A\u0005\r"+
-		"\u0000\u0000:A\u0005\u000e\u0000\u0000;A\u0005\u000f\u0000\u0000<A\u0005"+
-		"\u0010\u0000\u0000=A\u0005\u0011\u0000\u0000>A\u0005\u0012\u0000\u0000"+
-		"?A\u0005\u0013\u0000\u0000@4\u0001\u0000\u0000\u0000@9\u0001\u0000\u0000"+
-		"\u0000@:\u0001\u0000\u0000\u0000@;\u0001\u0000\u0000\u0000@<\u0001\u0000"+
-		"\u0000\u0000@=\u0001\u0000\u0000\u0000@>\u0001\u0000\u0000\u0000@?\u0001"+
-		"\u0000\u0000\u0000AL\u0001\u0000\u0000\u0000BC\n\n\u0000\u0000CD\u0005"+
-		"\b\u0000\u0000DK\u0003\b\u0004\u000bEF\n\u000b\u0000\u0000FK\u0005\u0007"+
-		"\u0000\u0000GH\n\b\u0000\u0000HI\u0005\u000b\u0000\u0000IK\u0005\f\u0000"+
-		"\u0000JB\u0001\u0000\u0000\u0000JE\u0001\u0000\u0000\u0000JG\u0001\u0000"+
-		"\u0000\u0000KN\u0001\u0000\u0000\u0000LJ\u0001\u0000\u0000\u0000LM\u0001"+
-		"\u0000\u0000\u0000M\t\u0001\u0000\u0000\u0000NL\u0001\u0000\u0000\u0000"+
-		"OT\u0003\b\u0004\u0000PQ\u0005\u0004\u0000\u0000QS\u0003\b\u0004\u0000"+
-		"RP\u0001\u0000\u0000\u0000SV\u0001\u0000\u0000\u0000TR\u0001\u0000\u0000"+
-		"\u0000TU\u0001\u0000\u0000\u0000U\u000b\u0001\u0000\u0000\u0000VT\u0001"+
-		"\u0000\u0000\u0000WX\u0006\u0006\uffff\uffff\u0000XY\u0005\t\u0000\u0000"+
-		"YZ\u0003\f\u0006\u0000Z[\u0005\n\u0000\u0000[a\u0001\u0000\u0000\u0000"+
-		"\\a\u0003\u0010\b\u0000]a\u00054\u0000\u0000^_\u0007\u0001\u0000\u0000"+
-		"_a\u0003\f\u0006\n`W\u0001\u0000\u0000\u0000`\\\u0001\u0000\u0000\u0000"+
-		"`]\u0001\u0000\u0000\u0000`^\u0001\u0000\u0000\u0000a\u0089\u0001\u0000"+
-		"\u0000\u0000bc\n\t\u0000\u0000cd\u0007\u0002\u0000\u0000d\u0088\u0003"+
-		"\f\u0006\nef\n\b\u0000\u0000fg\u0007\u0003\u0000\u0000g\u0088\u0003\f"+
-		"\u0006\thi\n\u0007\u0000\u0000ij\u0007\u0004\u0000\u0000j\u0088\u0003"+
-		"\f\u0006\bkl\n\u0006\u0000\u0000lm\u0007\u0005\u0000\u0000m\u0088\u0003"+
-		"\f\u0006\u0007no\n\u0005\u0000\u0000op\u0007\u0006\u0000\u0000p\u0088"+
-		"\u0003\f\u0006\u0006qr\n\u0004\u0000\u0000rs\u0005$\u0000\u0000s\u0088"+
-		"\u0003\f\u0006\u0005tu\n\u0002\u0000\u0000uv\u0005\u0007\u0000\u0000v"+
-		"w\u0003\f\u0006\u0000wx\u0005\u0005\u0000\u0000xy\u0003\f\u0006\u0003"+
-		"y\u0088\u0001\u0000\u0000\u0000z{\n\u0001\u0000\u0000{|\u0007\u0007\u0000"+
-		"\u0000|\u0088\u0003\f\u0006\u0002}~\n\u000e\u0000\u0000~\u007f\u0005\u000b"+
-		"\u0000\u0000\u007f\u0080\u0003\f\u0006\u0000\u0080\u0081\u0005\f\u0000"+
-		"\u0000\u0081\u0088\u0001\u0000\u0000\u0000\u0082\u0083\n\u000b\u0000\u0000"+
-		"\u0083\u0088\u0007\b\u0000\u0000\u0084\u0085\n\u0003\u0000\u0000\u0085"+
-		"\u0086\u0005%\u0000\u0000\u0086\u0088\u0003\b\u0004\u0000\u0087b\u0001"+
-		"\u0000\u0000\u0000\u0087e\u0001\u0000\u0000\u0000\u0087h\u0001\u0000\u0000"+
-		"\u0000\u0087k\u0001\u0000\u0000\u0000\u0087n\u0001\u0000\u0000\u0000\u0087"+
-		"q\u0001\u0000\u0000\u0000\u0087t\u0001\u0000\u0000\u0000\u0087z\u0001"+
-		"\u0000\u0000\u0000\u0087}\u0001\u0000\u0000\u0000\u0087\u0082\u0001\u0000"+
-		"\u0000\u0000\u0087\u0084\u0001\u0000\u0000\u0000\u0088\u008b\u0001\u0000"+
-		"\u0000\u0000\u0089\u0087\u0001\u0000\u0000\u0000\u0089\u008a\u0001\u0000"+
-		"\u0000\u0000\u008a\r\u0001\u0000\u0000\u0000\u008b\u0089\u0001\u0000\u0000"+
-		"\u0000\u008c\u0091\u0003\f\u0006\u0000\u008d\u008e\u0005\u0004\u0000\u0000"+
-		"\u008e\u0090\u0003\f\u0006\u0000\u008f\u008d\u0001\u0000\u0000\u0000\u0090"+
-		"\u0093\u0001\u0000\u0000\u0000\u0091\u008f\u0001\u0000\u0000\u0000\u0091"+
-		"\u0092\u0001\u0000\u0000\u0000\u0092\u000f\u0001\u0000\u0000\u0000\u0093"+
-		"\u0091\u0001\u0000\u0000\u0000\u0094\u00a0\u00050\u0000\u0000\u0095\u00a0"+
-		"\u00051\u0000\u0000\u0096\u00a0\u00052\u0000\u0000\u0097\u00a0\u00053"+
-		"\u0000\u0000\u0098\u00a0\u0007\t\u0000\u0000\u0099\u009b\u0005\u000b\u0000"+
-		"\u0000\u009a\u009c\u0003\u000e\u0007\u0000\u009b\u009a\u0001\u0000\u0000"+
-		"\u0000\u009b\u009c\u0001\u0000\u0000\u0000\u009c\u009d\u0001\u0000\u0000"+
-		"\u0000\u009d\u00a0\u0005\f\u0000\u0000\u009e\u00a0\u0005\u0013\u0000\u0000"+
-		"\u009f\u0094\u0001\u0000\u0000\u0000\u009f\u0095\u0001\u0000\u0000\u0000"+
-		"\u009f\u0096\u0001\u0000\u0000\u0000\u009f\u0097\u0001\u0000\u0000\u0000"+
-		"\u009f\u0098\u0001\u0000\u0000\u0000\u009f\u0099\u0001\u0000\u0000\u0000"+
-		"\u009f\u009e\u0001\u0000\u0000\u0000\u00a0\u0011\u0001\u0000\u0000\u0000"+
-		"\u000f\u0015!(.2@JLT`\u0087\u0089\u0091\u009b\u009f";
+		"\u0006\u0006&*\u0001\u0000\u0014\u0015\u0001\u0000+,\u00c0\u0000\u0015"+
+		"\u0001\u0000\u0000\u0000\u0002\"\u0001\u0000\u0000\u0000\u0004$\u0001"+
+		"\u0000\u0000\u0000\u0006,\u0001\u0000\u0000\u0000\bA\u0001\u0000\u0000"+
+		"\u0000\nP\u0001\u0000\u0000\u0000\fa\u0001\u0000\u0000\u0000\u000e\u008d"+
+		"\u0001\u0000\u0000\u0000\u0010\u00a0\u0001\u0000\u0000\u0000\u0012\u0014"+
+		"\u0003\u0002\u0001\u0000\u0013\u0012\u0001\u0000\u0000\u0000\u0014\u0017"+
+		"\u0001\u0000\u0000\u0000\u0015\u0013\u0001\u0000\u0000\u0000\u0015\u0016"+
+		"\u0001\u0000\u0000\u0000\u0016\u0018\u0001\u0000\u0000\u0000\u0017\u0015"+
+		"\u0001\u0000\u0000\u0000\u0018\u0019\u0005\u0000\u0000\u0001\u0019\u0001"+
+		"\u0001\u0000\u0000\u0000\u001a\u001b\u0007\u0000\u0000\u0000\u001b\u001c"+
+		"\u0003\u0004\u0002\u0000\u001c\u001d\u0005\u0003\u0000\u0000\u001d#\u0001"+
+		"\u0000\u0000\u0000\u001e\u001f\u0003\f\u0006\u0000\u001f \u0005\u0003"+
+		"\u0000\u0000 #\u0001\u0000\u0000\u0000!#\u0005\u0003\u0000\u0000\"\u001a"+
+		"\u0001\u0000\u0000\u0000\"\u001e\u0001\u0000\u0000\u0000\"!\u0001\u0000"+
+		"\u0000\u0000#\u0003\u0001\u0000\u0000\u0000$)\u0003\u0006\u0003\u0000"+
+		"%&\u0005\u0004\u0000\u0000&(\u0003\u0006\u0003\u0000\'%\u0001\u0000\u0000"+
+		"\u0000(+\u0001\u0000\u0000\u0000)\'\u0001\u0000\u0000\u0000)*\u0001\u0000"+
+		"\u0000\u0000*\u0005\u0001\u0000\u0000\u0000+)\u0001\u0000\u0000\u0000"+
+		",/\u00054\u0000\u0000-.\u0005\u0005\u0000\u0000.0\u0003\b\u0004\u0000"+
+		"/-\u0001\u0000\u0000\u0000/0\u0001\u0000\u0000\u000003\u0001\u0000\u0000"+
+		"\u000012\u0005\u0006\u0000\u000024\u0003\f\u0006\u000031\u0001\u0000\u0000"+
+		"\u000034\u0001\u0000\u0000\u00004\u0007\u0001\u0000\u0000\u000056\u0006"+
+		"\u0004\uffff\uffff\u000067\u0005\u000b\u0000\u000078\u0003\b\u0004\u0000"+
+		"89\u0005\f\u0000\u00009B\u0001\u0000\u0000\u0000:B\u0005\r\u0000\u0000"+
+		";B\u0005\u000e\u0000\u0000<B\u0005\u000f\u0000\u0000=B\u0005\u0010\u0000"+
+		"\u0000>B\u0005\u0011\u0000\u0000?B\u0005\u0012\u0000\u0000@B\u0005\u0013"+
+		"\u0000\u0000A5\u0001\u0000\u0000\u0000A:\u0001\u0000\u0000\u0000A;\u0001"+
+		"\u0000\u0000\u0000A<\u0001\u0000\u0000\u0000A=\u0001\u0000\u0000\u0000"+
+		"A>\u0001\u0000\u0000\u0000A?\u0001\u0000\u0000\u0000A@\u0001\u0000\u0000"+
+		"\u0000BM\u0001\u0000\u0000\u0000CD\n\t\u0000\u0000DE\u0005\n\u0000\u0000"+
+		"EL\u0003\b\u0004\nFG\n\u000b\u0000\u0000GL\u0005\u0007\u0000\u0000HI\n"+
+		"\n\u0000\u0000IJ\u0005\b\u0000\u0000JL\u0005\t\u0000\u0000KC\u0001\u0000"+
+		"\u0000\u0000KF\u0001\u0000\u0000\u0000KH\u0001\u0000\u0000\u0000LO\u0001"+
+		"\u0000\u0000\u0000MK\u0001\u0000\u0000\u0000MN\u0001\u0000\u0000\u0000"+
+		"N\t\u0001\u0000\u0000\u0000OM\u0001\u0000\u0000\u0000PU\u0003\b\u0004"+
+		"\u0000QR\u0005\u0004\u0000\u0000RT\u0003\b\u0004\u0000SQ\u0001\u0000\u0000"+
+		"\u0000TW\u0001\u0000\u0000\u0000US\u0001\u0000\u0000\u0000UV\u0001\u0000"+
+		"\u0000\u0000V\u000b\u0001\u0000\u0000\u0000WU\u0001\u0000\u0000\u0000"+
+		"XY\u0006\u0006\uffff\uffff\u0000YZ\u0005\u000b\u0000\u0000Z[\u0003\f\u0006"+
+		"\u0000[\\\u0005\f\u0000\u0000\\b\u0001\u0000\u0000\u0000]b\u0003\u0010"+
+		"\b\u0000^b\u00054\u0000\u0000_`\u0007\u0001\u0000\u0000`b\u0003\f\u0006"+
+		"\naX\u0001\u0000\u0000\u0000a]\u0001\u0000\u0000\u0000a^\u0001\u0000\u0000"+
+		"\u0000a_\u0001\u0000\u0000\u0000b\u008a\u0001\u0000\u0000\u0000cd\n\t"+
+		"\u0000\u0000de\u0007\u0002\u0000\u0000e\u0089\u0003\f\u0006\nfg\n\b\u0000"+
+		"\u0000gh\u0007\u0003\u0000\u0000h\u0089\u0003\f\u0006\tij\n\u0007\u0000"+
+		"\u0000jk\u0007\u0004\u0000\u0000k\u0089\u0003\f\u0006\blm\n\u0006\u0000"+
+		"\u0000mn\u0007\u0005\u0000\u0000n\u0089\u0003\f\u0006\u0007op\n\u0005"+
+		"\u0000\u0000pq\u0007\u0006\u0000\u0000q\u0089\u0003\f\u0006\u0006rs\n"+
+		"\u0004\u0000\u0000st\u0005$\u0000\u0000t\u0089\u0003\f\u0006\u0005uv\n"+
+		"\u0002\u0000\u0000vw\u0005\u0007\u0000\u0000wx\u0003\f\u0006\u0000xy\u0005"+
+		"\u0005\u0000\u0000yz\u0003\f\u0006\u0003z\u0089\u0001\u0000\u0000\u0000"+
+		"{|\n\u0001\u0000\u0000|}\u0007\u0007\u0000\u0000}\u0089\u0003\f\u0006"+
+		"\u0002~\u007f\n\u000e\u0000\u0000\u007f\u0080\u0005\b\u0000\u0000\u0080"+
+		"\u0081\u0003\f\u0006\u0000\u0081\u0082\u0005\t\u0000\u0000\u0082\u0089"+
+		"\u0001\u0000\u0000\u0000\u0083\u0084\n\u000b\u0000\u0000\u0084\u0089\u0007"+
+		"\b\u0000\u0000\u0085\u0086\n\u0003\u0000\u0000\u0086\u0087\u0005%\u0000"+
+		"\u0000\u0087\u0089\u0003\b\u0004\u0000\u0088c\u0001\u0000\u0000\u0000"+
+		"\u0088f\u0001\u0000\u0000\u0000\u0088i\u0001\u0000\u0000\u0000\u0088l"+
+		"\u0001\u0000\u0000\u0000\u0088o\u0001\u0000\u0000\u0000\u0088r\u0001\u0000"+
+		"\u0000\u0000\u0088u\u0001\u0000\u0000\u0000\u0088{\u0001\u0000\u0000\u0000"+
+		"\u0088~\u0001\u0000\u0000\u0000\u0088\u0083\u0001\u0000\u0000\u0000\u0088"+
+		"\u0085\u0001\u0000\u0000\u0000\u0089\u008c\u0001\u0000\u0000\u0000\u008a"+
+		"\u0088\u0001\u0000\u0000\u0000\u008a\u008b\u0001\u0000\u0000\u0000\u008b"+
+		"\r\u0001\u0000\u0000\u0000\u008c\u008a\u0001\u0000\u0000\u0000\u008d\u0092"+
+		"\u0003\f\u0006\u0000\u008e\u008f\u0005\u0004\u0000\u0000\u008f\u0091\u0003"+
+		"\f\u0006\u0000\u0090\u008e\u0001\u0000\u0000\u0000\u0091\u0094\u0001\u0000"+
+		"\u0000\u0000\u0092\u0090\u0001\u0000\u0000\u0000\u0092\u0093\u0001\u0000"+
+		"\u0000\u0000\u0093\u000f\u0001\u0000\u0000\u0000\u0094\u0092\u0001\u0000"+
+		"\u0000\u0000\u0095\u00a1\u00050\u0000\u0000\u0096\u00a1\u00051\u0000\u0000"+
+		"\u0097\u00a1\u00052\u0000\u0000\u0098\u00a1\u00053\u0000\u0000\u0099\u00a1"+
+		"\u0007\t\u0000\u0000\u009a\u009c\u0005\b\u0000\u0000\u009b\u009d\u0003"+
+		"\u000e\u0007\u0000\u009c\u009b\u0001\u0000\u0000\u0000\u009c\u009d\u0001"+
+		"\u0000\u0000\u0000\u009d\u009e\u0001\u0000\u0000\u0000\u009e\u00a1\u0005"+
+		"\t\u0000\u0000\u009f\u00a1\u0005\u0013\u0000\u0000\u00a0\u0095\u0001\u0000"+
+		"\u0000\u0000\u00a0\u0096\u0001\u0000\u0000\u0000\u00a0\u0097\u0001\u0000"+
+		"\u0000\u0000\u00a0\u0098\u0001\u0000\u0000\u0000\u00a0\u0099\u0001\u0000"+
+		"\u0000\u0000\u00a0\u009a\u0001\u0000\u0000\u0000\u00a0\u009f\u0001\u0000"+
+		"\u0000\u0000\u00a1\u0011\u0001\u0000\u0000\u0000\u000f\u0015\")/3AKMU"+
+		"a\u0088\u008a\u0092\u009c\u00a0";
 	public static final ATN _ATN =
 		new ATNDeserializer().deserialize(_serializedATN.toCharArray());
 	static {
