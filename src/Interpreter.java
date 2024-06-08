@@ -35,25 +35,38 @@ class Interpreter extends MangoBaseVisitor<Object> {
 
   @Override
   public Object visitNullableType(MangoParser.NullableTypeContext ctx) {
-    return visit(ctx.type());
+    Object type = visit(ctx.type());
+
+    // checks if type is 'any'
+    if (type == Object.class) return Object.class;
+    // checks if type is 'null'
+    else if (type == null) return null;
+    return new HashSet<>(Arrays.asList(type, null));
   }
 
   @Override
   public Object visitArrayType(MangoParser.ArrayTypeContext ctx) {
-    return visit(ctx.type());
+    return new Object[] {visit(ctx.type())};
   }
 
   @Override
   public Object visitUnionType(MangoParser.UnionTypeContext ctx) {
-    Class<?> left = (Class<?>)visit(ctx.left);
-    Class<?> right = (Class<?>)visit(ctx.right);
+    Object left = visit(ctx.left);
+    Object right = visit(ctx.right);
 
+    // checks if either left or right is 'any'
     if (left == Object.class || right == Object.class)
       return Object.class;
+    // makes sure left and right are not the same types
     else if (left != right)
       return new HashSet<>(Arrays.asList(left, right));
 
     return left;
+  }
+
+  @Override
+  public Object visitParenType(MangoParser.ParenTypeContext ctx) {
+    return visit(ctx.type());
   }
 
   @Override
@@ -96,6 +109,7 @@ class Interpreter extends MangoBaseVisitor<Object> {
     ArrayList<?> array = (ArrayList<?>) visit(ctx.array);
     long index = (long) visit(ctx.index);
 
+    // checks if the index is out of bounds
     if (index < 0 || array.size() <= index) {
       new RuntimeError("index " + index + " out of range for length " + array.size(),
         new Source(Runner.file, ctx.index.start.getLine(), ctx.index.start.getCharPositionInLine() + 1));
@@ -106,6 +120,7 @@ class Interpreter extends MangoBaseVisitor<Object> {
 
   @Override
   public Object visitVarExpr(MangoParser.VarExprContext ctx) {
+    // loops through every stack frame until the variable is found
     for (HashMap<String, Object> frame : stack)
       if (frame.containsKey(ctx.ID().getText()))
         return frame.get(ctx.ID().getText());
@@ -205,6 +220,7 @@ class Interpreter extends MangoBaseVisitor<Object> {
     Object right = visit(ctx.right);
 
     if (ctx.op.getType() == 22) {
+      // checks if it is string addition
       if (left instanceof String)
         return ((String) left) + ((String) right);
       else if (left instanceof Long && right instanceof Long)
@@ -276,7 +292,6 @@ class Interpreter extends MangoBaseVisitor<Object> {
   @Override
   public Object visitNullishExpr(MangoParser.NullishExprContext ctx) {
     Object left = visit(ctx.left);
-
     return left != null? left : visit(ctx.right);
   }
 
@@ -285,13 +300,8 @@ class Interpreter extends MangoBaseVisitor<Object> {
     Object left = visit(ctx.left);
     Object type = visit(ctx.right);
 
-    if (ctx.right instanceof MangoParser.NullTypeContext && left == null)
-      return null;
-    else if (ctx.right instanceof MangoParser.NullableTypeContext) {
-      if (left == null || validCast(left, type)) return left;
-    }
-    else if (validCast(left, type))
-      return left;
+    // checks if left can be cast
+    if (validCast(left, type)) return left;
 
     return new RuntimeError("cannot cast value '" + left + "' to type '" + ctx.right.getText() + "'",
       new Source(Runner.file, ctx.start.getLine(), ctx.start.getCharPositionInLine() + 1));
@@ -397,10 +407,12 @@ class Interpreter extends MangoBaseVisitor<Object> {
   public Object visitArrayLiteral(MangoParser.ArrayLiteralContext ctx) {
     ArrayList<Object> list = new ArrayList<Object>();
 
+    // returns the empty list of the array contains no elements
     if (ctx.array == null)
       return list;
 
     List<ParseTree> children = ctx.array.children;
+    // loops over every second element to account for commas
     for (int i = 0; i < children.size(); i += 2)
       list.add(visit(children.get(i)));
 
@@ -412,6 +424,7 @@ class Interpreter extends MangoBaseVisitor<Object> {
     if (ctx instanceof MangoParser.VarExprContext) {
       String name = ((MangoParser.VarExprContext) ctx).ID().getText();
 
+      // loops over every stack frame until it finds the variable
       for (HashMap<String, Object> frame : stack) {
         if (frame.containsKey(name)) {
           frame.put(name, value);
@@ -424,6 +437,7 @@ class Interpreter extends MangoBaseVisitor<Object> {
     ArrayList<Object> array = (ArrayList<Object>) visit(ctx.getChild(0));
     long index = (long) visit(ctx.getChild(2));
 
+    // checks if the index is out of bounds
     if (index < 0 || array.size() <= index) {
       new RuntimeError("index " + index + " out of range for length " + array.size(),
         new Source(Runner.file, access.index.start.getLine(), access.start.getCharPositionInLine() + 1));
@@ -433,21 +447,23 @@ class Interpreter extends MangoBaseVisitor<Object> {
     return value;
   }
 
-  @SuppressWarnings("unchecked")
   private boolean validCast(Object obj, Object type) {
-    if (type instanceof Class) {
-      if (obj instanceof ArrayList) {
-        for (Object e : (ArrayList<?>) obj)
-          if (!validCast(e, type)) return false;
-
-        return true;
-      }
-
+    // checks if the type is primitive
+    if (type instanceof Class)
       return ((Class<?>) type).isInstance(obj);
+    // checks if the type is 'null'
+    else if (type == null)
+      return obj == null;
+    // checks if the type is an array
+    else if (type.getClass().isArray()) {
+      for (Object e : (ArrayList<?>) obj)
+        if (!validCast(e, ((Object[]) type)[0])) return false;
+
+      return true;
     }
 
-    for (Class<?> c : ((HashSet<Class<?>>) type))
-      if (validCast(obj, c)) return true;
+    for (Object t : ((HashSet<?>) type))
+      if (validCast(obj, t)) return true;
 
     return false;
   }
