@@ -1,13 +1,12 @@
 #include <iostream>
 #include <fstream>
-#include <chrono>
 #include <memory>
 #include "Lexer.h"
 #include "Parser.h"
 #include "ASTNode.h"
 #include "Visitor.h"
 #include "Interpreter.h"
-#include "Object.h"
+#include "Value.cpp"
 using namespace std;
 
 Value interpret(string input) {
@@ -33,10 +32,8 @@ int main(int argc, char* argv[]) {
 
       Value result = interpret(input);
 
-      if (!hadError)
-        cout << result << endl;
-      else
-        hadError = false;
+      if (!hadError) cout << result << endl;
+      else hadError = false;
     }
   }
   else {
