@@ -66,6 +66,19 @@ struct {
 
           return;
         }
+        else if (match('*')) { // matches multiline comments
+          if (advance() == '\n') line++;
+
+          while (current < source.size()) {
+            const char c = advance();
+
+            if (c == '\n') line++;
+            else if (c == '/' && source[current - 2] == '*') return;
+          }
+
+          SyntaxError("unterminated comment", Source("REPL", line));
+          return;
+        }
 
         return tokens.push_back(Token(SLASH, "/", line));
       
