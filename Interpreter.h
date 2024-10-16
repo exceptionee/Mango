@@ -5,7 +5,7 @@
 #include <system_error>
 #include "Visitor.h"
 #include "ASTNode.h"
-#include "Object.h"
+#include "Value.h"
 
 #define MATH_OP(left, op, right) std::holds_alternative<long long>(left.data)? \
   Value{std::get<long long>(left.data) op std::get<long long>(right.data)} : \
@@ -42,7 +42,8 @@ struct : Visitor {
 
   std::any visitProgram(Program& p) override {
     try {
-      if (ExpressionStatement* s = dynamic_cast<ExpressionStatement*>(p.statements[0])) return visit(*p.statements[0]);
+      if (p.statements.size() == 1 && typeid(*p.statements[0]) == typeid(ExpressionStatement))
+        return visit(*p.statements[0]);
       for (Statement* statement : p.statements)
         visit(*statement);
     }
