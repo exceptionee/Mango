@@ -17,7 +17,7 @@ git clone https://github.com/exceptionee/mango.git
 Then compile using the compiler of your choice (the example below uses the GNU compiler).
 
 ```bash
-g++ main.cpp -g Object.cpp -o mango
+g++ main.cpp -o mango
 ```
 
 ## Run Locally
