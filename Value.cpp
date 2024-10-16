@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 #include <iostream>
-#include "Object.h"
+#include "Value.h"
 
 bool Value::operator==(Value v) const {
   if (data.index() != v.data.index()) return false;
