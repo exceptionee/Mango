@@ -1,10 +1,12 @@
 #include <any>
-#include <math.h>
-#include <deque>
 #include <charconv>
+#include <deque>
+#include <iostream>
+#include <math.h>
 #include <system_error>
-#include "Visitor.h"
+#include <unordered_map>
 #include "ASTNode.h"
+#include "Error.h"
 #include "Value.h"
 
 #define MATH_OP(left, op, right) std::holds_alternative<long long>(left.data)? \
@@ -31,7 +33,7 @@ struct : Visitor {
       (std::any_cast<Value>(visit(arrayAccess->index)).data);
 
     if (index < 0 || index >= elements->size())
-      throw RuntimeError("index " + std::to_string(index) + " out of bounds for length " + std::to_string(elements->size()), Source("REPL", (*arrayAccess).bracket.line));
+      throw RuntimeError("index " + std::to_string(index) + " out of bounds for length " + std::to_string(elements->size()), Source((*arrayAccess).bracket.line));
 
     return &(*elements)[index];
   }
@@ -90,7 +92,7 @@ struct : Visitor {
         auto [_, ec] = std::from_chars(e.value.lexeme.data(), e.value.lexeme.data() + e.value.lexeme.size(), result);
         
         if (ec == std::errc::result_out_of_range)
-          throw RuntimeError("number " + std::string(e.value.lexeme) + " out of range for type 'int'", Source("REPL", e.value.line));
+          throw RuntimeError("number " + std::string(e.value.lexeme) + " out of range for type 'int'", Source(e.value.line));
 
         return Value{result};
       }
@@ -99,7 +101,7 @@ struct : Visitor {
         auto [_, ec] = std::from_chars(e.value.lexeme.data(), e.value.lexeme.data() + e.value.lexeme.size(), result);
         
         if (ec == std::errc::result_out_of_range)
-          throw RuntimeError("number " + std::string(e.value.lexeme) + " out of range for type 'float'", Source("REPL", e.value.line));
+          throw RuntimeError("number " + std::string(e.value.lexeme) + " out of range for type 'float'", Source(e.value.line));
 
         return Value{result};
       }
@@ -127,10 +129,6 @@ struct : Visitor {
     return Value{std::monostate{}}; // unreachable
   }
 
-  std::any visitParenExpression(ParenExpression& e) override {
-    return visit(e.expr);
-  }
-
   std::any visitArrayAccessExpression(ArrayAccessExpression& e) override {
     const std::vector<Value> elements = std::static_pointer_cast<Array>
       (std::get<std::shared_ptr<Object>>(std::any_cast<Value>(visit(e.array)).data))->elements;
@@ -139,7 +137,7 @@ struct : Visitor {
     
     if (index >= 0 && index < elements.size()) return elements[index];
 
-    throw RuntimeError("index " + std::to_string(index) + " out of bounds for length " + std::to_string(elements.size()), Source("REPL", e.bracket.line));
+    throw RuntimeError("index " + std::to_string(index) + " out of bounds for length " + std::to_string(elements.size()), Source(e.bracket.line));
   }
 
   std::any visitPostfixExpression(PostfixExpression& e) override {
@@ -214,7 +212,7 @@ struct : Visitor {
 
           if (rightNum != 0) return Value{std::get<long long>(left.data) / rightNum};
 
-          throw RuntimeError("cannot divide by 0", Source("REPL", e.op.line));
+          throw RuntimeError("cannot divide by 0", Source(e.op.line));
         }
 
         return Value{std::get<double>(left.data) / std::get<double>(right.data)};
@@ -225,7 +223,7 @@ struct : Visitor {
 
           if (rightNum != 0) return Value{std::get<long long>(left.data) % rightNum};
 
-          throw RuntimeError("cannot divide by 0", Source("REPL", e.op.line));
+          throw RuntimeError("cannot divide by 0", Source(e.op.line));
         }
 
         return Value{std::fmod(std::get<double>(left.data), std::get<double>(right.data))};
@@ -262,7 +260,7 @@ struct : Visitor {
 
           if (rightNum != 0) return Value{*ptr /= rightNum};
 
-          throw RuntimeError("cannot divide by 0", Source("REPL", e.op.line));
+          throw RuntimeError("cannot divide by 0", Source(e.op.line));
         }
 
         return Value{(*std::get_if<double>(&l_value->data)) /= std::get<double>(value.data)};
@@ -273,7 +271,7 @@ struct : Visitor {
 
           if (rightNum != 0) return Value{*ptr %= rightNum};
 
-          throw RuntimeError("cannot divide by 0", Source("REPL", e.op.line));
+          throw RuntimeError("cannot divide by 0", Source(e.op.line));
         }
 
         return *l_value = Value{std::fmod((*std::get_if<double>(&l_value->data)), std::get<double>(value.data))};
