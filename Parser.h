@@ -1,6 +1,3 @@
-#include <vector>
-#include <typeinfo>
-#include "Token.h"
 #include "ASTNode.h"
 #include "Error.h"
 
@@ -18,28 +15,67 @@ struct {
   Program* program() {
     std::vector<Statement*> statements;
 
-    while (current < tokens.size() - 1)
-      statements.push_back(declaration());
+    while (current < tokens.size() - 1) {
+      Statement* statement = declaration();
+
+      if (statement != nullptr)
+        statements.push_back(statement);
+    }
 
     return new Program(statements);
+  }
+
+  Type* type() {
+    Type* t = primaryType();
+
+    while (match(LEFT_BRACKET)) {
+      consume(RIGHT_BRACKET, "expected ']'");
+      t = new ArrayType(t);
+    }
+
+    return t;
+  }
+
+  Type* primaryType() {
+    if (match(LEFT_PAREN)) {
+      Type* t = type();
+      consume(RIGHT_PAREN, "expected ')' after type");
+      return t;
+    }
+
+    Token t = advance();
+
+    switch (t.type) {
+      case ANY_TYPE: return ANY_T;
+      case INT_TYPE: return INT_T;
+      case FLOAT_TYPE: return FLOAT_T;
+      case STRING_TYPE: return STRING_T;
+      case CHAR_TYPE: return CHAR_T;
+      case BOOL_TYPE: return BOOL_T;
+      case _NULL: return NULL_T;
+    }
+
+    throw SyntaxError("expected type", Source(t.line));
   }
 
   Statement* declaration() {
     try {
       if (match(VAR)) {
         Token id = consume(ID, "expected identifier");
+        Type* t = match(COLON)? type() : nullptr;
         Expression* initializer = match(ASSIGN)? expression() : nullptr;
         consume(SEMI, "expected ';'");
 
-        return new VarDeclarationStatement(id, initializer);
+        return new VarDeclarationStatement(id, t, initializer);
       }
       else if (match(CONST)) {
         Token id = consume(ID, "expected identifier");
+        Type* t = match(COLON)? type() : nullptr;
         consume(ASSIGN, "'const' declarations must have an initializer");
         Expression* initializer = expression();
         consume(SEMI, "expected ';'");
 
-        return new ConstDeclarationStatement(id, *initializer);
+        return new ConstDeclarationStatement(id, t, *initializer);
       }
 
       return statement();
@@ -201,8 +237,7 @@ struct {
     if (match(LEFT_PAREN)) {
       Expression* expr = expression();
       consume(RIGHT_PAREN, "expected ')' after expression");
-
-      return new ParenExpression(*expr);
+      return expr;
     }
     else if (match(LEFT_BRACKET)) {
       std::vector<Expression*> elements;
@@ -229,7 +264,7 @@ struct {
       case ID: return new VarExpression(advance());
     }
 
-    throw SyntaxError("expected expression", Source("REPL", peek().line));
+    throw SyntaxError("expected expression", Source(peek().line));
   }
 
   inline Token advance() {
@@ -246,7 +281,7 @@ struct {
 
   inline Token consume(TokenType type, std::string message) {
     if (peek().type == type) return advance();
-    throw SyntaxError(message, Source("REPL", peek().line));
+    throw SyntaxError(message, Source(peek().line));
   }
 
   inline Token peek() {
@@ -257,6 +292,9 @@ struct {
     return tokens[current - 1];
   }
 
+  /**
+   * Skips tokens until it finds a token that could feasibly start a new statement.
+   */
   inline void synchronize() {
     advance();
 
@@ -265,6 +303,7 @@ struct {
 
       switch (peek().type) {
         case VAR:
+        case CONST:
         case PRINT:
           return;
       }

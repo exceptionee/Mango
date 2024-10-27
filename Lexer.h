@@ -1,7 +1,7 @@
-#include <vector>
 #include <unordered_map>
-#include "Token.h"
+#include <vector>
 #include "Error.h"
+#include "Token.h"
 
 struct {
   std::string_view source;
@@ -25,6 +25,9 @@ struct {
     {"print", PRINT}
   };
 
+  /**
+   * Scans the input stream for the next valid token and appends it to `tokens`.
+   */
   inline void scanToken() {
     const char c = advance();
 
@@ -76,7 +79,7 @@ struct {
             else if (c == '/' && source[current - 2] == '*') return;
           }
 
-          SyntaxError("unterminated comment", Source("REPL", line));
+          SyntaxError("unterminated comment", Source(line));
           return;
         }
 
@@ -96,7 +99,7 @@ struct {
         return tokens.push_back(match('|')? Token(OR, "||", line) : Token(UNION, "|", line));
       case '&':
         if (match('&')) return tokens.push_back(Token(AND, "&&", line));
-        SyntaxError("unrecognized token '&'", Source("REPL", line));
+        SyntaxError("unrecognized token '&'", Source(line));
         return;
       case '?':
         return tokens.push_back(match('?')? Token(COALESCENCE, "??", line) : Token(TERNARY, "?", line));
@@ -106,7 +109,7 @@ struct {
           if (advance() == '"') 
             return tokens.push_back(Token(STRING, source.substr(start + 1, current - start - 2), line));
 
-        SyntaxError("unterminated string", Source("REPL", line));
+        SyntaxError("unterminated string", Source(line));
         return;
 
       default:
@@ -132,7 +135,7 @@ struct {
             source.substr(start, current - start), line));
         }
 
-        SyntaxError("unrecognized token '" + std::string(1, c) + "'", Source("REPL", line));
+        SyntaxError("unrecognized token '" + std::string(1, c) + "'", Source(line));
     }
   }
 

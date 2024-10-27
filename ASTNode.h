@@ -1,6 +1,9 @@
 #pragma once
 
 #include <any>
+#include <vector>
+#include "Token.h"
+#include "Type.h"
 #include "Visitor.h"
 
 struct Visitor;
@@ -40,16 +43,6 @@ struct VarExpression : Expression {
 
   std::any accept(Visitor* v) override {
     return v->visitVarExpression(*this);
-  }
-};
-
-struct ParenExpression : Expression {
-  Expression& expr;
-
-  ParenExpression(Expression& expr) : expr(expr) {}
-
-  std::any accept(Visitor* v) override {
-    return v->visitParenExpression(*this);
   }
 };
 
@@ -163,10 +156,11 @@ struct PrintStatement : public Statement {
 
 struct VarDeclarationStatement : public Statement {
   Token id;
+  Type* type;
   Expression* initializer;
 
-  VarDeclarationStatement(Token id, Expression* initializer)
-    : id(id), initializer(initializer) {}
+  VarDeclarationStatement(Token id, Type* type, Expression* initializer)
+    : id(id), type(type), initializer(initializer) {}
 
   std::any accept(Visitor* v) {
     return v->visitVarDeclarationStatement(*this);
@@ -175,10 +169,11 @@ struct VarDeclarationStatement : public Statement {
 
 struct ConstDeclarationStatement : public Statement {
   Token id;
+  Type* type;
   Expression& initializer;
 
-  ConstDeclarationStatement(Token id, Expression& initializer)
-    : id(id), initializer(initializer) {}
+  ConstDeclarationStatement(Token id, Type* type, Expression& initializer)
+    : id(id), type(type), initializer(initializer) {}
 
   std::any accept(Visitor* v) {
     return v->visitConstDeclarationStatement(*this);
