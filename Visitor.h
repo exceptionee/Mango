@@ -1,5 +1,7 @@
 #pragma once
 
+#include <any>
+
 struct ASTNode;
 struct Program;
 struct Statement;
@@ -12,7 +14,6 @@ struct Expression;
 struct LiteralExpression;
 struct ArrayLiteralExpression;
 struct VarExpression;
-struct ParenExpression;
 struct ArrayAccessExpression;
 struct PostfixExpression;
 struct UnaryExpression;
@@ -31,7 +32,6 @@ struct Visitor {
   virtual std::any visitLiteralExpression(LiteralExpression& e) = 0;
   virtual std::any visitArrayLiteralExpression(ArrayLiteralExpression& e) = 0;
   virtual std::any visitVarExpression(VarExpression& e) = 0;
-  virtual std::any visitParenExpression(ParenExpression& e) = 0;
   virtual std::any visitArrayAccessExpression(ArrayAccessExpression& e) = 0;
   virtual std::any visitPostfixExpression(PostfixExpression& e) = 0;
   virtual std::any visitUnaryExpression(UnaryExpression& e) = 0;
