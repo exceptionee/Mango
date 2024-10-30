@@ -51,17 +51,13 @@ int main(int argc, char* argv[]) {
       if (std::cin.eof()) break;
       else if (input.empty()) continue;
 
+      auto fallback = TypeChecker.stack;
       Value result = interpret(input);
 
       if (!hadError) std::cout << result << std::endl;
       else {
         hadError = false;
-
-        for (auto it = TypeChecker.stack.back().begin(); it != TypeChecker.stack.back().end();) {
-          if (it->second.type == ERROR_T)
-            it = TypeChecker.stack.back().erase(it);
-          else ++it;
-        }
+        TypeChecker.stack = fallback;
       }
     }
   }
