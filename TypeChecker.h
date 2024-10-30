@@ -107,16 +107,74 @@ struct : Visitor {
     }
   }
 
-  std::any visitArrayLiteralExpression(ArrayLiteralExpression& e) override {}
+  std::any visitArrayLiteralExpression(ArrayLiteralExpression& e) override {
+    if (e.elements.empty()) return static_cast<Type*>(new ArrayType(NULL_T));
+
+    Type* elementType = std::any_cast<Type*>(visit(*e.elements[0]));
+
+    for (int i = 1; i < e.elements.size(); ++i) {
+      Type* currentType = std::any_cast<Type*>(visit(*e.elements[i]));
+      if (elementType == ERROR_T) return ERROR_T;
+      else if (!elementType->superset(currentType)) {
+        TypeError("array elements must all be of the same type", Source(0));
+        return ERROR_T;
+      }
+    }
+
+    return static_cast<Type*>(new ArrayType(elementType));
+  }
 
   std::any visitVarExpression(VarExpression& e) override {
     Symbol* symbol = getSymbol(e.id);
     return symbol != nullptr? symbol->type : ERROR_T;
   }
 
-  std::any visitArrayAccessExpression(ArrayAccessExpression& e) override {}
+  std::any visitArrayAccessExpression(ArrayAccessExpression& e) override {
+    Type* type = std::any_cast<Type*>(visit(e.array));
+    Type* indexType = std::any_cast<Type*>(visit(e.index));
 
-  std::any visitPostfixExpression(PostfixExpression& e) override {}
+    if (type == ERROR_T || indexType == ERROR_T) return ERROR_T;
+
+    ArrayType* arrayType = dynamic_cast<ArrayType*>(type);
+
+    if (arrayType == nullptr) {
+      TypeError("cannot perform an array access on type '" + type->toString() + "'",
+        Source(e.bracket.line));
+      return ERROR_T;
+    }
+    else if (indexType != INT_T) {
+      TypeError("array index must be of type 'int'", Source(e.bracket.line));
+      return ERROR_T;
+    }
+
+    return arrayType->elementsType;
+  }
+
+  std::any visitPostfixExpression(PostfixExpression& e) override {
+    Type* type = std::any_cast<Type*>(visit(e.expr));
+
+    if (type == ERROR_T) return ERROR_T;
+
+    if (VarExpression* expr = dynamic_cast<VarExpression*>(&e.expr)) {
+      if (getSymbol(expr->id)->mutability == Symbol::CONST) {
+        TypeError("cannot reassign constant '" + std::string(expr->id.lexeme) + "'",
+          Source(e.op.line));
+        return ERROR_T;
+      }
+    }
+    else if (dynamic_cast<ArrayAccessExpression*>(&e.expr) == nullptr) {
+      TypeError("invalid operand for operator '" + std::string(e.op.lexeme) + "'",
+        Source(e.op.line));
+      return ERROR_T;
+    }
+
+    if (type == INT_T) return INT_T;
+    else if (type == FLOAT_T) return FLOAT_T;
+
+    TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on type '" + type->toString() + "'",
+      Source(e.op.line));
+    return ERROR_T;
+  }
 
   std::any visitUnaryExpression(UnaryExpression& e) override {
     Type* type = std::any_cast<Type*>(visit(e.expr));
@@ -129,7 +187,7 @@ struct : Visitor {
         if (type == INT_T) return INT_T;
         else if (type == FLOAT_T) return FLOAT_T;
         
-        TypeError("cannot perform unary operation '" + std::string(e.op.lexeme) + "' on type '" + type->toString() + "'",
+        TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on type '" + type->toString() + "'",
           Source(e.op.line));
         return ERROR_T;
 
@@ -143,7 +201,7 @@ struct : Visitor {
           }
         }
         else if (dynamic_cast<ArrayAccessExpression*>(&e.expr) == nullptr) {
-          TypeError("invalid right side for unary operator '" + std::string(e.op.lexeme) + "'",
+          TypeError("invalid operand for operator '" + std::string(e.op.lexeme) + "'",
             Source(e.op.line));
           return ERROR_T;
         }
@@ -151,14 +209,14 @@ struct : Visitor {
         if (type == INT_T) return INT_T;
         else if (type == FLOAT_T) return FLOAT_T;
 
-        TypeError("cannot perform unary operation '" + std::string(e.op.lexeme) + "' on type '" + type->toString() + "'",
+        TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on type '" + type->toString() + "'",
           Source(e.op.line));
         return ERROR_T;
 
       default:
         if (type == BOOL_T) return BOOL_T;
         
-        TypeError("cannot perform unary operation '!' on type '" + type->toString() + "'",
+        TypeError("cannot perform operation '!' on type '" + type->toString() + "'",
           Source(e.op.line));
         return ERROR_T;
     }
@@ -201,7 +259,27 @@ struct : Visitor {
     }
   }
 
-  std::any visitTernaryExpression(TernaryExpression& e) override {}
+  std::any visitTernaryExpression(TernaryExpression& e) override {
+    Type* conditionType = std::any_cast<Type*>(visit(e.condition));
+    Type* valueType = std::any_cast<Type*>(visit(e.value));
+    Type* defaultType = std::any_cast<Type*>(visit(e._default));
+
+    if (conditionType == ERROR_T || valueType == ERROR_T || defaultType == ERROR_T)
+      return ERROR_T;
+
+    if (conditionType != BOOL_T) {
+      TypeError("condition expression must be of type 'bool'",
+        Source(0));
+      return ERROR_T;
+    }
+    else if (valueType != defaultType) {
+      TypeError("the value expression and default expression must have the same type",
+        Source(0));
+      return ERROR_T;
+    }
+
+    return valueType;
+  }
 
   std::any visitAssignmentExpression(AssignmentExpression& e) override {
     Type* left;
@@ -219,7 +297,7 @@ struct : Visitor {
       left = symbol->type;
     }
     else if (dynamic_cast<ArrayAccessExpression*>(&e.l_value) == nullptr) {
-      TypeError("invalid left side for operator '" + std::string(e.op.lexeme) + "'",
+      TypeError("invalid operand for operator '" + std::string(e.op.lexeme) + "'",
         Source(e.op.line));
       return ERROR_T;
     }
