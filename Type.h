@@ -29,15 +29,17 @@ struct ArrayType : Type {
   }
 };
 
-struct : Type {
+struct AnyStruct : Type {
   bool superset(Type* type) override {
     return true;
   }
 
-  virtual std::string toString() override {
+  std::string toString() override {
     return "any";
   }
-} *ANY_T;
+};
+
+Type* ANY_T = new AnyStruct();
 
 struct Simple : Type {
   std::string name;
