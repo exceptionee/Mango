@@ -37,7 +37,7 @@ struct Array : Object {
 struct Value {
   std::variant<long long, double, char, bool, std::shared_ptr<Object>, std::monostate> data;
 
-  bool operator==(Value v) const {
+  bool operator==(const Value& v) const {
     if (data.index() != v.data.index()) return false;
 
     switch (data.index()) {
@@ -52,8 +52,8 @@ struct Value {
           return aString == bString;
         }
 
-        std::vector<Value> aArray = std::static_pointer_cast<Array>(std::get<std::shared_ptr<Object>>(data))->elements;
-        std::vector<Value> bArray = std::static_pointer_cast<Array>(std::get<std::shared_ptr<Object>>(v.data))->elements;
+        std::shared_ptr<Array> aArray = std::static_pointer_cast<Array>(std::get<std::shared_ptr<Object>>(data));
+        std::shared_ptr<Array> bArray = std::static_pointer_cast<Array>(std::get<std::shared_ptr<Object>>(v.data));
         
         return aArray == bArray;
       }
@@ -62,7 +62,7 @@ struct Value {
     }
   }
 
-  friend std::ostream& operator<<(std::ostream& os, const Value v) {
+  friend std::ostream& operator<<(std::ostream& os, const Value& v) {
     switch (v.data.index()) {
       case 0: return (os << "\e[33m" << std::get<long long>(v.data) << "\e[0m");
       case 1: return (os << "\e[33m" << std::get<double>(v.data) << "\e[0m");
