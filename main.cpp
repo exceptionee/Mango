@@ -41,14 +41,14 @@ int main(int argc, char* argv[]) {
 
   std::string fileName = program.get<std::string>("file");
 
-  if (fileName.empty()) {
+  if (fileName.empty()) { // REPL
     std::string input;
 
     while (true) {
       std::cout << "> ";
       std::getline(std::cin, input);
 
-      if (std::cin.eof()) break;
+      if (std::cin.eof()) return 0;
       else if (input.empty()) continue;
 
       auto fallback = TypeChecker.stack;
@@ -61,21 +61,20 @@ int main(int argc, char* argv[]) {
       }
     }
   }
-  else {
-    if (fileName.size() <= 6 || fileName.substr(fileName.size() - 6) != ".mango") {
-      std::cerr << "error: file does not end in '.mango'";
-      return 1;
-    }
 
-    std::ifstream file(fileName);
-
-    if (!file.good()) {
-      std::cerr << "error: file does not exist";
-      return 1;
-    }
-
-    Source::file = fileName;
-    std::string str{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
-    interpret(str);
+  if (fileName.size() <= 6 || fileName.substr(fileName.size() - 6) != ".mango") {
+    std::cerr << "error: file does not end in '.mango'";
+    return 1;
   }
+
+  std::ifstream file(fileName);
+
+  if (!file.good()) {
+    std::cerr << "error: file does not exist";
+    return 1;
+  }
+
+  Source::file = fileName;
+  std::string str{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
+  interpret(str);
 }
