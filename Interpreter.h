@@ -13,18 +13,14 @@
   Value{std::get<long long>(left.data) op std::get<long long>(right.data)} : \
   Value{std::get<double>(left.data) op std::get<double>(right.data)}
 
-#define MATH_ASSIGNMENT_OP(left, op, right) std::holds_alternative<long long>(left->data)? \
-  Value{(*std::get_if<long long>(&left->data)) op std::get<long long>(right.data)} : \
-  Value{(*std::get_if<double>(&left->data)) op std::get<double>(right.data)}
-
 struct : Visitor {
   std::deque<std::unordered_map<std::string, Value>> stack = {{}};
 
-  Value* getLValue(Expression& e) {
+  Value& getLValue(Expression& e) {
     if (VarExpression* varExpr = dynamic_cast<VarExpression*>(&e))
       for (auto rit = stack.rbegin(); rit != stack.rend(); ++rit)
         for (auto& pair : *rit)
-          if (pair.first == varExpr->id.lexeme) return &pair.second;
+          if (pair.first == varExpr->id.lexeme) return pair.second;
 
     ArrayAccessExpression* arrayAccess = dynamic_cast<ArrayAccessExpression*>(&e);
     std::vector<Value>* elements = &std::static_pointer_cast<Array>
@@ -35,7 +31,7 @@ struct : Visitor {
     if (index < 0 || index >= elements->size())
       throw RuntimeError("index " + std::to_string(index) + " out of bounds for length " + std::to_string(elements->size()), Source((*arrayAccess).bracket.line));
 
-    return &(*elements)[index];
+    return (*elements)[index];
   }
 
   std::any visit(ASTNode& e) override {
@@ -44,7 +40,7 @@ struct : Visitor {
 
   std::any visitProgram(Program& p) override {
     try {
-      if (p.statements.size() == 1 && typeid(*p.statements[0]) == typeid(ExpressionStatement))
+      if (p.statements.size() == 1 && dynamic_cast<ExpressionStatement*>(p.statements[0]) != nullptr)
         return visit(*p.statements[0]);
       for (Statement* statement : p.statements)
         visit(*statement);
@@ -141,17 +137,16 @@ struct : Visitor {
   }
 
   std::any visitPostfixExpression(PostfixExpression& e) override {
+    Value& value = getLValue(e.expr);
+
     if (e.op.type == INCREMENT) {
-      if (long long* ptr = std::get_if<long long>(&getLValue(e.expr)->data))
-        return Value{(*ptr)++};
-        
-      return Value{(*std::get_if<double>(&getLValue(e.expr)->data))++};
+      if (long long* p = std::get_if<long long>(&value.data)) return Value{(*p)++};
+      else return Value{std::get<double>(value.data)++};
     }
-        
-    if (long long* ptr = std::get_if<long long>(&getLValue(e.expr)->data))
-      return Value{(*ptr)--};
-        
-    return Value{(*std::get_if<double>(&getLValue(e.expr)->data))--};
+    else {
+      if (long long* p = std::get_if<long long>(&value.data)) return Value{(*p)--};
+      else return Value{std::get<double>(value.data)--};
+    }
   }
 
   std::any visitUnaryExpression(UnaryExpression& e) override {
@@ -165,16 +160,20 @@ struct : Visitor {
           : Value{-std::get<double>(expr.data)};
       }
       case INCREMENT: {
-        if (long long* ptr = std::get_if<long long>(&getLValue(e.expr)->data))
-          return Value{++*ptr};
-        
-        return Value{++*std::get_if<double>(&getLValue(e.expr)->data)};
+        Value& value = getLValue(e.expr);
+
+        if (long long* p = std::get_if<long long>(&value.data)) ++(*p);
+        else ++std::get<double>(value.data);
+
+        return value;
       }
       case DECREMENT: {
-        if (long long* ptr = std::get_if<long long>(&getLValue(e.expr)->data))
-          return Value{--*ptr};
-        
-        return Value{--*std::get_if<double>(&getLValue(e.expr)->data)};
+        Value& value = getLValue(e.expr);
+
+        if (long long* p = std::get_if<long long>(&value.data)) --(*p);
+        else --std::get<double>(value.data);
+
+        return value;
       }
       default: return Value{!std::get<bool>(std::any_cast<Value>(visit(e.expr)).data)};
     }
@@ -237,36 +236,36 @@ struct : Visitor {
   }
 
   std::any visitAssignmentExpression(AssignmentExpression& e) override {
-    Value* l_value = getLValue(e.l_value);
+    Value& l_value = getLValue(e.l_value);
     const Value value = std::any_cast<Value>(visit(e.value));
 
     switch (e.op.type) {
-      case ASSIGN: return *l_value = value;
+      case ASSIGN: return l_value = value;
       case PLUS_EQUALS: {
         if (std::holds_alternative<std::shared_ptr<Object>>(value.data)) {
-          const std::shared_ptr<String> a = std::static_pointer_cast<String>(std::get<std::shared_ptr<Object>>(l_value->data));
+          const std::shared_ptr<String> a = std::static_pointer_cast<String>(std::get<std::shared_ptr<Object>>(l_value.data));
           const std::shared_ptr<String> b = std::static_pointer_cast<String>(std::get<std::shared_ptr<Object>>(value.data));
             
-          return *l_value = Value{std::make_shared<String>(a->chars + b->chars)};
+          return l_value = Value{std::make_shared<String>(a->chars + b->chars)};
         }
 
-        return MATH_ASSIGNMENT_OP(l_value, +=, value);
+        return MATH_OP(l_value, +=, value);
       }
-      case MINUS_EQUALS: return MATH_ASSIGNMENT_OP(l_value, -=, value);
-      case STAR_EQUALS: return MATH_ASSIGNMENT_OP(l_value, *=, value);
+      case MINUS_EQUALS: return MATH_OP(l_value, -=, value);
+      case STAR_EQUALS: return MATH_OP(l_value, *=, value);
       case SLASH_EQUALS: {
-        if (long long* ptr = std::get_if<long long>(&l_value->data)) {
+        if (long long* p = std::get_if<long long>(&l_value.data)) {
           const long long rightNum = std::get<long long>(value.data);
 
-          if (rightNum != 0) return Value{*ptr /= rightNum};
+          if (rightNum != 0) return Value{*p /= rightNum};
 
           throw RuntimeError("cannot divide by 0", Source(e.op.line));
         }
 
-        return Value{(*std::get_if<double>(&l_value->data)) /= std::get<double>(value.data)};
+        return Value{std::get<double>(l_value.data) /= std::get<double>(value.data)};
       }
       default: {
-        if (long long* ptr = std::get_if<long long>(&l_value->data)) {
+        if (long long* ptr = std::get_if<long long>(&l_value.data)) {
           const long long rightNum = std::get<long long>(value.data);
 
           if (rightNum != 0) return Value{*ptr %= rightNum};
@@ -274,7 +273,7 @@ struct : Visitor {
           throw RuntimeError("cannot divide by 0", Source(e.op.line));
         }
 
-        return *l_value = Value{std::fmod((*std::get_if<double>(&l_value->data)), std::get<double>(value.data))};
+        return l_value = Value{std::fmod(std::get<double>(l_value.data), std::get<double>(value.data))};
       }
     }
   }
