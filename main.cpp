@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
   }
 
   std::ios::sync_with_stdio(false);
-  std::cout << std::showpoint;
+  std::cout << std::setprecision(17);
 
   std::string fileName = program.get<std::string>("file");
 

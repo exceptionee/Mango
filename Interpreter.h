@@ -29,13 +29,13 @@ struct : Visitor {
       (std::any_cast<Value>(visit(arrayAccess->index)).data);
 
     if (index < 0 || index >= elements->size())
-      throw RuntimeError("index " + std::to_string(index) + " out of bounds for length " + std::to_string(elements->size()), Source((*arrayAccess).bracket.line));
+      throw RuntimeError("index " + std::to_string(index) + " out of bounds for length " + std::to_string(elements->size()), Source((*arrayAccess).index.start.line));
 
     return (*elements)[index];
   }
 
   std::any visit(ASTNode& e) override {
-    return e.accept(this);
+    return e.accept(*this);
   }
 
   std::any visitProgram(Program& p) override {
@@ -133,7 +133,7 @@ struct : Visitor {
     
     if (index >= 0 && index < elements.size()) return elements[index];
 
-    throw RuntimeError("index " + std::to_string(index) + " out of bounds for length " + std::to_string(elements.size()), Source(e.bracket.line));
+    throw RuntimeError("index " + std::to_string(index) + " out of bounds for length " + std::to_string(elements.size()), Source(e.index.start.line));
   }
 
   std::any visitPostfixExpression(PostfixExpression& e) override {

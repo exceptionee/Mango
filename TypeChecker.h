@@ -29,7 +29,7 @@ struct : Visitor {
   }
 
   std::any visit(ASTNode& e) override {
-    return e.accept(this);
+    return e.accept(*this);
   }
 
   std::any visitProgram(Program& p) override {
@@ -117,7 +117,8 @@ struct : Visitor {
 
       if (elementType == ERROR_T) return ERROR_T;
       else if (!elementType->superset(currentType)) {
-        TypeError("array elements must all be of the same type", Source(0));
+        TypeError("array elements must all be of the same type",
+          Source(e.elements[i]->start.line));
         return ERROR_T;
       }
     }
@@ -140,11 +141,11 @@ struct : Visitor {
 
     if (arrayType == nullptr) {
       TypeError("cannot perform an array access on type '" + type->toString() + "'",
-        Source(e.bracket.line));
+        Source(e.array.start.line));
       return ERROR_T;
     }
     else if (indexType != INT_T) {
-      TypeError("array index must be of type 'int'", Source(e.bracket.line));
+      TypeError("array index must be of type 'int'", Source(e.index.start.line));
       return ERROR_T;
     }
 
@@ -159,13 +160,13 @@ struct : Visitor {
     if (VarExpression* expr = dynamic_cast<VarExpression*>(&e.expr)) {
       if (getSymbol(expr->id)->mutability == Symbol::CONST) {
         TypeError("cannot reassign constant '" + std::string(expr->id.lexeme) + "'",
-          Source(e.op.line));
+          Source(e.expr.start.line));
         return ERROR_T;
       }
     }
     else if (dynamic_cast<ArrayAccessExpression*>(&e.expr) == nullptr) {
       TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on an r-value",
-        Source(e.op.line));
+        Source(e.expr.start.line));
       return ERROR_T;
     }
 
@@ -173,7 +174,7 @@ struct : Visitor {
     else if (type == FLOAT_T) return FLOAT_T;
 
     TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on type '" + type->toString() + "'",
-      Source(e.op.line));
+      Source(e.expr.start.line));
     return ERROR_T;
   }
 
@@ -189,7 +190,7 @@ struct : Visitor {
         else if (type == FLOAT_T) return FLOAT_T;
         
         TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on type '" + type->toString() + "'",
-          Source(e.op.line));
+          Source(e.expr.start.line));
         return ERROR_T;
 
       case INCREMENT:
@@ -197,13 +198,13 @@ struct : Visitor {
         if (VarExpression* expr = dynamic_cast<VarExpression*>(&e.expr)) {
           if (getSymbol(expr->id)->mutability == Symbol::CONST) {
             TypeError("cannot reassign constant '" + std::string(expr->id.lexeme) + "'",
-              Source(e.op.line));
+              Source(e.expr.start.line));
             return ERROR_T;
           }
         }
         else if (dynamic_cast<ArrayAccessExpression*>(&e.expr) == nullptr) {
           TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on an r-value",
-            Source(e.op.line));
+            Source(e.expr.start.line));
           return ERROR_T;
         }
 
@@ -211,14 +212,14 @@ struct : Visitor {
         else if (type == FLOAT_T) return FLOAT_T;
 
         TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on type '" + type->toString() + "'",
-          Source(e.op.line));
+          Source(e.expr.start.line));
         return ERROR_T;
 
       default:
         if (type == BOOL_T) return BOOL_T;
         
         TypeError("cannot perform operation '!' on type '" + type->toString() + "'",
-          Source(e.op.line));
+          Source(e.expr.start.line));
         return ERROR_T;
     }
   }
@@ -270,12 +271,12 @@ struct : Visitor {
 
     if (conditionType != BOOL_T) {
       TypeError("condition expression must be of type 'bool'",
-        Source(0));
+        Source(e.condition.start.line));
       return ERROR_T;
     }
     else if (valueType != defaultType) {
       TypeError("the value expression and default expression must have the same type",
-        Source(0));
+        Source(e._default.start.line));
       return ERROR_T;
     }
 
@@ -291,7 +292,7 @@ struct : Visitor {
       if (symbol == nullptr) return ERROR_T;
       else if (symbol->mutability == Symbol::CONST) {
         TypeError("cannot reassign constant '" + std::string(expr->id.lexeme) + "'",
-          Source(e.op.line));
+          Source(e.l_value.start.line));
         return ERROR_T;
       }
 
@@ -299,7 +300,7 @@ struct : Visitor {
     }
     else if (dynamic_cast<ArrayAccessExpression*>(&e.l_value) == nullptr) {
       TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on an r-value",
-        Source(e.op.line));
+        Source(e.l_value.start.line));
       return ERROR_T;
     }
     else left = std::any_cast<Type*>(visit(e.l_value));
@@ -312,8 +313,8 @@ struct : Visitor {
       case ASSIGN:
         if (left->superset(right)) return right;
 
-        TypeError("cannot assign type '" + right->toString() + "' to type '" + left->toString() + "'",
-          Source(e.op.line));
+        TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on types '" + left->toString() + "' and '" + right->toString() + "'",
+          Source(e.value.start.line));
         return ERROR_T;
 
       case PLUS_EQUALS:
@@ -322,7 +323,7 @@ struct : Visitor {
         else if (left == STRING_T && right == STRING_T) return STRING_T;
         
         TypeError("cannot perform operation '+=' on types '" + left->toString() + "' and '" + right->toString() + "'",
-          Source(e.op.line));
+          Source(e.value.start.line));
         return ERROR_T;
 
       default:
@@ -330,7 +331,7 @@ struct : Visitor {
         else if (left == FLOAT_T && right == FLOAT_T) return FLOAT_T;
 
         TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on types '" + left->toString() + "' and '" + right->toString() + "'",
-          Source(e.op.line));
+          Source(e.value.start.line));
         return ERROR_T;
     }
   }

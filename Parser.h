@@ -229,7 +229,7 @@ struct {
       Expression* index = expression();
       const Token bracket = consume(RIGHT_BRACKET, "expected ']' after index");
 
-      expr = new ArrayAccessExpression(*expr, bracket, *index);
+      expr = new ArrayAccessExpression(*expr, *index);
     }
 
     return expr;
@@ -242,6 +242,7 @@ struct {
       return expr;
     }
     else if (match(LEFT_BRACKET)) {
+      const Token lb = previous();
       std::vector<Expression*> elements;
 
       if (!match(RIGHT_BRACKET)) {
@@ -252,7 +253,7 @@ struct {
         consume(RIGHT_BRACKET, "expected ']' after expression");
       }
 
-      return new ArrayLiteralExpression(elements);
+      return new ArrayLiteralExpression(lb, elements);
     }
 
     switch (peek().type) {
