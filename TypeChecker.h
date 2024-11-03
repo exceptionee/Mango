@@ -114,6 +114,7 @@ struct : Visitor {
 
     for (int i = 1; i < e.elements.size(); ++i) {
       Type* currentType = std::any_cast<Type*>(visit(*e.elements[i]));
+
       if (elementType == ERROR_T) return ERROR_T;
       else if (!elementType->superset(currentType)) {
         TypeError("array elements must all be of the same type", Source(0));
@@ -163,7 +164,7 @@ struct : Visitor {
       }
     }
     else if (dynamic_cast<ArrayAccessExpression*>(&e.expr) == nullptr) {
-      TypeError("invalid operand for operator '" + std::string(e.op.lexeme) + "'",
+      TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on an r-value",
         Source(e.op.line));
       return ERROR_T;
     }
@@ -201,7 +202,7 @@ struct : Visitor {
           }
         }
         else if (dynamic_cast<ArrayAccessExpression*>(&e.expr) == nullptr) {
-          TypeError("invalid operand for operator '" + std::string(e.op.lexeme) + "'",
+          TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on an r-value",
             Source(e.op.line));
           return ERROR_T;
         }
@@ -232,13 +233,12 @@ struct : Visitor {
       case COALESCENCE: return NULL_T;
       case AND:
       case OR:
-        if (left != BOOL_T || right != BOOL_T) {
-          TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on types '" + left->toString() + "' and '" + right->toString() + "'",
-            Source(e.op.line));
-          return ERROR_T;
-        }
+        if (left == BOOL_T && right == BOOL_T) return BOOL_T;
 
-        return BOOL_T;
+        TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on types '" + left->toString() + "' and '" + right->toString() + "'",
+          Source(e.op.line));
+        return ERROR_T;
+
       case EQUALS:
       case NOT_EQUALS: return BOOL_T;
       case PLUS:
@@ -249,6 +249,7 @@ struct : Visitor {
         TypeError("cannot perform operation '+' on types '" + left->toString() + "' and '" + right->toString() + "'",
           Source(e.op.line));
         return ERROR_T;
+
       default:
         if (left == INT_T && right == INT_T) return INT_T;
         else if (left == FLOAT_T && right == FLOAT_T) return FLOAT_T;
@@ -297,7 +298,7 @@ struct : Visitor {
       left = symbol->type;
     }
     else if (dynamic_cast<ArrayAccessExpression*>(&e.l_value) == nullptr) {
-      TypeError("invalid operand for operator '" + std::string(e.op.lexeme) + "'",
+      TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on an r-value",
         Source(e.op.line));
       return ERROR_T;
     }
