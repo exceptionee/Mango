@@ -57,6 +57,7 @@ enum TokenType {
   AS,
   IF,
   ELSE,
+  WHILE,
   PRINT,
   _EOF
 };

@@ -172,6 +172,19 @@ struct PrintStatement : public Statement {
   }
 };
 
+
+struct WhileStatement : Statement {
+  Expression& condition;
+  Statement& body;
+
+  WhileStatement(Expression& condition, Statement& body)
+    : condition(condition), body(body) {}
+
+  std::any accept(Visitor& v) {
+    return v.visitWhileStatement(*this);
+  }
+};
+
 struct VarDeclarationStatement : public Statement {
   Token id;
   Type* type;

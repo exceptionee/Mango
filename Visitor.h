@@ -9,6 +9,7 @@ struct IfStatement;
 struct BlockStatement;
 struct ExpressionStatement;
 struct PrintStatement;
+struct WhileStatement;
 struct VarDeclarationStatement;
 struct ConstDeclarationStatement;
 struct Expression;
@@ -29,6 +30,7 @@ struct Visitor {
   virtual std::any visitBlockStatement(BlockStatement& s) = 0;
   virtual std::any visitExpressionStatement(ExpressionStatement& s) = 0;
   virtual std::any visitPrintStatement(PrintStatement& s) = 0;
+  virtual std::any visitWhileStatement(WhileStatement& s) = 0;
   virtual std::any visitVarDeclarationStatement(VarDeclarationStatement& s) = 0;
   virtual std::any visitConstDeclarationStatement(ConstDeclarationStatement& s) = 0;
   virtual std::any visitLiteralExpression(LiteralExpression& e) = 0;

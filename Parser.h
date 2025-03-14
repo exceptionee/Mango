@@ -120,6 +120,14 @@ struct {
       consume(SEMI, "expected ';'");
       return new PrintStatement(*expr);
     }
+    else if (match(WHILE)) {
+      consume(LEFT_PAREN, "expected '(' after 'while'");
+      Expression* condition = expression();
+      consume(RIGHT_PAREN, "expected ')' after condition");
+      Statement* body = statement();
+      
+      return new WhileStatement(*condition, *body);
+    }
     else if (match(LEFT_BRACE)) {
       std::vector<Statement*> statements;
 

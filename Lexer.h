@@ -24,6 +24,7 @@ struct {
     {"as", AS},
     {"if", IF},
     {"else", ELSE},
+    {"while", WHILE},
     {"print", PRINT}
   };
 

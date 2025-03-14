@@ -81,6 +81,14 @@ struct : Visitor {
     return std::any{};
   }
 
+  std::any visitWhileStatement(WhileStatement& s) {
+    while (std::get<bool>(std::any_cast<Value>(visit(s.condition)).data)) {
+      visit(s.body);
+    }
+
+    return std::any{};
+  }
+
   std::any visitVarDeclarationStatement(VarDeclarationStatement& s) override {
     stack.back().insert(std::make_pair(s.id.lexeme, (s.initializer != nullptr)?
       std::any_cast<Value>(visit(*s.initializer)) : Value{std::monostate{}}));

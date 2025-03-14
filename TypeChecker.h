@@ -71,6 +71,17 @@ struct : Visitor {
     return std::any{};
   }
 
+  std::any visitWhileStatement(WhileStatement& s) override {
+    Type* condition = std::any_cast<Type*>(visit(s.condition));
+
+    if (condition != ERROR_T && condition != BOOL_T)
+      TypeError("'" + condition->toString() + "' cannot be converted to type 'bool'",
+        Source(s.condition.start.line));
+    
+    visit(s.body);
+    return std::any{};
+  }
+
   std::any visitVarDeclarationStatement(VarDeclarationStatement& s) override {
     std::string id = std::string(s.id.lexeme);
     Type* valueType = s.initializer != nullptr?
@@ -253,6 +264,17 @@ struct : Visitor {
 
       case EQUALS:
       case NOT_EQUALS: return BOOL_T;
+      case GREATER:
+      case LESS:
+      case GREATER_EQUALS:
+      case LESS_EQUALS:
+        if (left == INT_T && right == INT_T || left == FLOAT_T && right == FLOAT_T)
+          return BOOL_T;
+          
+        TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on types '" + left->toString() + "' and '" + right->toString() + "'",
+          Source(e.op.line));
+        return ERROR_T;
+
       case PLUS:
         if (left == INT_T && right == INT_T) return INT_T;
         else if (left == FLOAT_T && right == FLOAT_T) return FLOAT_T;
