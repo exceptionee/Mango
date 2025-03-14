@@ -55,6 +55,8 @@ enum TokenType {
   FALSE,
   _NULL,
   AS,
+  IF,
+  ELSE,
   PRINT,
   _EOF
 };

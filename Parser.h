@@ -28,6 +28,22 @@ struct {
   }
 
   Type* type() {
+    Type* t = arrayType();
+
+    if (match(UNION)) {
+      auto u = new UnionType({ t, arrayType() });
+
+      while (match(UNION))
+        u->add(arrayType());
+
+      if (u->types.size() == 1) return u->types[0];
+      return u;
+    }
+
+    return t;
+  }
+
+  Type* arrayType() {
     Type* t = primaryType();
 
     while (match(LEFT_BRACKET)) {
@@ -89,7 +105,17 @@ struct {
   }
 
   Statement* statement() {
-    if (match(PRINT)) {
+    if (match(IF)) {
+      consume(LEFT_PAREN, "expected '(' after 'if'");
+      Expression* condition = expression();
+      consume(RIGHT_PAREN, "expected ')' after condition");
+
+      Statement* thenBranch = statement();
+      Statement* elseBranch = match(ELSE)? statement() : nullptr;
+
+      return new IfStatement(*condition, *thenBranch, elseBranch);
+    }
+    else if (match(PRINT)) {
       Expression* expr = expression();
       consume(SEMI, "expected ';'");
       return new PrintStatement(*expr);
@@ -100,7 +126,7 @@ struct {
       while (peek().type != RIGHT_BRACE && current < tokens.size() - 1)
         statements.push_back(declaration());
 
-      consume(RIGHT_BRACE, "expected '}' after block");
+      consume(RIGHT_BRACE, "expected '}'");
       return new BlockStatement(statements);
     }
 

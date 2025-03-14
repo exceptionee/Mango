@@ -12,6 +12,53 @@ struct Type {
   }
 };
 
+struct UnionType : Type {
+  std::vector<Type*> types;
+
+  UnionType(std::vector<Type*> types) {
+    for (Type* t : types)
+      add(t);
+  }
+
+  void add(Type* type) {
+    if (UnionType* unionType = dynamic_cast<UnionType*>(type)) {
+      for (Type* i : unionType->types)
+        add(i);
+      return;
+    }
+
+    if (!superset(type))
+      types.push_back(type);
+  }
+
+  bool superset(Type* type) override {
+    UnionType* unionType = dynamic_cast<UnionType*>(type);
+
+    if (!unionType) {
+      for (Type* t : types)
+        if (t->superset(type)) return true;
+        
+      return false;
+    }
+
+    for (Type* t : unionType->types)
+      if (!superset(t)) return false;
+
+    return true;
+  }
+
+  virtual std::string toString() override {
+    if (types.empty()) return "";
+
+    std::string result = types[0]->toString();
+
+    for (int i = 1; i < types.size(); ++i)
+      result += " | " + types[i]->toString();
+
+    return result;
+  }
+};
+
 struct ArrayType : Type {
   Type* elementsType;
 
@@ -25,21 +72,12 @@ struct ArrayType : Type {
   }
 
   virtual std::string toString() override {
+    if (UnionType* unionType = dynamic_cast<UnionType*>(elementsType))
+      return "(" + elementsType->toString() + ")[]";
+
     return elementsType->toString() + "[]";
   }
 };
-
-struct AnyStruct : Type {
-  bool superset(Type* type) override {
-    return true;
-  }
-
-  std::string toString() override {
-    return "any";
-  }
-};
-
-Type* ANY_T = new AnyStruct();
 
 struct Simple : Type {
   std::string name;
@@ -56,6 +94,7 @@ struct Simple : Type {
 };
 
 Type* ERROR_T = nullptr;
+Type* ANY_T = new Simple("any");
 Type* INT_T = new Simple("int");
 Type* FLOAT_T = new Simple("float");
 Type* STRING_T = new Simple("string");

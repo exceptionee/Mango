@@ -22,6 +22,8 @@ struct {
     {"false", FALSE},
     {"null", _NULL},
     {"as", AS},
+    {"if", IF},
+    {"else", ELSE},
     {"print", PRINT}
   };
 
