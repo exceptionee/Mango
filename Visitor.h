@@ -5,6 +5,7 @@
 struct ASTNode;
 struct Program;
 struct Statement;
+struct IfStatement;
 struct BlockStatement;
 struct ExpressionStatement;
 struct PrintStatement;
@@ -24,6 +25,7 @@ struct AssignmentExpression;
 struct Visitor {
   virtual std::any visit(ASTNode& e) = 0;
   virtual std::any visitProgram(Program& p) = 0;
+  virtual std::any visitIfStatement(IfStatement& s) = 0;
   virtual std::any visitBlockStatement(BlockStatement& s) = 0;
   virtual std::any visitExpressionStatement(ExpressionStatement& s) = 0;
   virtual std::any visitPrintStatement(PrintStatement& s) = 0;
