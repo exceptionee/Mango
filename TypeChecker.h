@@ -39,6 +39,18 @@ struct : Visitor {
     return std::any{};
   }
 
+  std::any visitIfStatement(IfStatement& s) override {
+    Type* condition = std::any_cast<Type*>(visit(s.condition));
+
+    if (condition != ERROR_T && condition != BOOL_T)
+      TypeError("'" + condition->toString() + "' cannot be converted to type 'bool'",
+        Source(s.condition.start.line));
+    
+    visit(s.thenBranch);
+    if (s.elseBranch) visit(*s.elseBranch);
+    return std::any{};
+  }
+
   std::any visitBlockStatement(BlockStatement& s) override {
     stack.push_back({});
 
@@ -110,20 +122,19 @@ struct : Visitor {
   std::any visitArrayLiteralExpression(ArrayLiteralExpression& e) override {
     if (e.elements.empty()) return static_cast<Type*>(new ArrayType(NULL_T));
 
-    Type* elementType = std::any_cast<Type*>(visit(*e.elements[0]));
+    UnionType* elementsType = new UnionType({});
 
-    for (int i = 1; i < e.elements.size(); ++i) {
-      Type* currentType = std::any_cast<Type*>(visit(*e.elements[i]));
+    for (Expression* element : e.elements) {
+      Type* type = std::any_cast<Type*>(visit(*element));
 
-      if (elementType == ERROR_T) return ERROR_T;
-      else if (!elementType->superset(currentType)) {
-        TypeError("array elements must all be of the same type",
-          Source(e.elements[i]->start.line));
-        return ERROR_T;
-      }
+      if (type == ERROR_T) return ERROR_T;
+
+      elementsType->add(type);
     }
 
-    return static_cast<Type*>(new ArrayType(elementType));
+    if (elementsType->types.size() == 1)
+      return static_cast<Type*>(new ArrayType(elementsType->types[0]));
+    return static_cast<Type*>(new ArrayType(elementsType));
   }
 
   std::any visitVarExpression(VarExpression& e) override {

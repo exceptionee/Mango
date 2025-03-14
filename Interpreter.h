@@ -40,14 +40,26 @@ struct : Visitor {
 
   std::any visitProgram(Program& p) override {
     try {
-      if (p.statements.size() == 1 && dynamic_cast<ExpressionStatement*>(p.statements[0]) != nullptr)
-        return visit(*p.statements[0]);
-      for (Statement* statement : p.statements)
-        visit(*statement);
+      for (int i = 0; i < p.statements.size() - 1; ++i)
+        visit(*p.statements[i]);
+
+      const auto result = visit(*p.statements[p.statements.size() - 1]);
+
+      if (dynamic_cast<ExpressionStatement*>(p.statements[p.statements.size() - 1]) != nullptr)
+        return result;
     }
     catch (RuntimeError e) {}
 
     return Value{std::monostate{}};
+  }
+
+  std::any visitIfStatement(IfStatement& s) {
+    if (std::get<bool>(std::any_cast<Value>(visit(s.condition)).data))
+      visit(s.thenBranch);
+    else if (s.elseBranch)
+      visit(*s.elseBranch);
+
+    return std::any{};
   }
 
   std::any visitBlockStatement(BlockStatement& s) {
