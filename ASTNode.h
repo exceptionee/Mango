@@ -129,6 +129,19 @@ struct Statement : ASTNode {
   virtual std::any accept(Visitor& v) = 0;
 };
 
+struct IfStatement : Statement {
+  Expression& condition;
+  Statement& thenBranch;
+  Statement* elseBranch;
+
+  IfStatement(Expression& condition, Statement& thenBranch, Statement* elseBranch)
+    : condition(condition), thenBranch(thenBranch), elseBranch(elseBranch) {}
+
+  std::any accept(Visitor& v) {
+    return v.visitIfStatement(*this);
+  }
+};
+
 struct BlockStatement : Statement {
   std::vector<Statement*> statements;
 
