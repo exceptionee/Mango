@@ -78,23 +78,8 @@ struct {
 
   Statement* declaration() {
     try {
-      if (match(VAR)) {
-        Token id = consume(ID, "expected identifier");
-        Type* t = match(COLON)? type() : nullptr;
-        Expression* initializer = match(ASSIGN)? expression() : nullptr;
-        consume(SEMI, "expected ';'");
-
-        return new VarDeclarationStatement(id, t, initializer);
-      }
-      else if (match(CONST)) {
-        Token id = consume(ID, "expected identifier");
-        Type* t = match(COLON)? type() : nullptr;
-        consume(ASSIGN, "'const' declarations must have an initializer");
-        Expression* initializer = expression();
-        consume(SEMI, "expected ';'");
-
-        return new ConstDeclarationStatement(id, t, *initializer);
-      }
+      if (match(VAR)) return varDeclaration();
+      else if (match(CONST)) return constDeclaration();
 
       return statement();
     }
@@ -104,7 +89,51 @@ struct {
     }
   }
 
+  Statement* varDeclaration() {
+    Token id = consume(ID, "expected identifier");
+    Type* t = match(COLON)? type() : nullptr;
+    Expression* initializer = match(ASSIGN)? expression() : nullptr;
+    consume(SEMI, "expected ';'");
+
+    return new VarDeclarationStatement(id, t, initializer);
+  }
+
+  Statement* constDeclaration() {
+    Token id = consume(ID, "expected identifier");
+    Type* t = match(COLON)? type() : nullptr;
+    consume(ASSIGN, "'const' declarations must have an initializer");
+    Expression* initializer = expression();
+    consume(SEMI, "expected ';'");
+
+    return new ConstDeclarationStatement(id, t, *initializer);
+  }
+
   Statement* statement() {
+    if (match(FOR)) {
+      consume(LEFT_PAREN, "expected '(' after 'for'");
+      Statement* initializer = match(SEMI)? nullptr :
+        match(VAR)? varDeclaration() :
+        match(CONST)? constDeclaration() : expressionStatement();
+
+      Expression* condition = peek().type == SEMI?
+        new LiteralExpression(Token(TRUE, "true", 0)) : expression();
+      consume(SEMI, "expected ';' after condition");
+
+      Expression* increment = peek().type == RIGHT_PAREN? nullptr : expression();
+      consume(RIGHT_PAREN, "expected ')' after clauses");
+
+      Statement* body = statement();
+
+      if (increment)
+        body = new BlockStatement({ body, new ExpressionStatement(*increment) });
+
+      body = new WhileStatement(*condition, *body);
+      
+      if (initializer)
+        body = new BlockStatement({ initializer, body });
+
+      return body;
+    }
     if (match(IF)) {
       consume(LEFT_PAREN, "expected '(' after 'if'");
       Expression* condition = expression();
@@ -138,6 +167,10 @@ struct {
       return new BlockStatement(statements);
     }
 
+    return expressionStatement();
+  }
+
+  Statement* expressionStatement() {
     Expression* expr = expression();
     consume(SEMI, "expected ';'");
     return new ExpressionStatement(*expr);

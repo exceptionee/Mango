@@ -54,7 +54,7 @@ enum TokenType {
   TRUE,
   FALSE,
   _NULL,
-  AS,
+  FOR,
   IF,
   ELSE,
   WHILE,

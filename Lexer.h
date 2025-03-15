@@ -21,7 +21,7 @@ struct {
     {"true", TRUE},
     {"false", FALSE},
     {"null", _NULL},
-    {"as", AS},
+    {"for", FOR},
     {"if", IF},
     {"else", ELSE},
     {"while", WHILE},
