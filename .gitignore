@@ -1,7 +1,7 @@
-.vscode/
-bin/
-lib/
-tests/
-src/.antlr/
+.vscode/*
+*.exe
 *.mango
-*.js
+*.ico
+*.rc
+*.res
+Utils.h
