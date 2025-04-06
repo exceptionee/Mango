@@ -20,8 +20,7 @@ struct {
     while (current < tokens.size() - 1) {
       Statement* statement = declaration();
 
-      if (statement != nullptr)
-        statements.push_back(statement);
+      if (statement) statements.push_back(statement);
     }
 
     return new Program(statements);
@@ -56,9 +55,26 @@ struct {
 
   Type* primaryType() {
     if (match(LEFT_PAREN)) {
+      if (match(RIGHT_PAREN)) {
+        consume(ARROW, "expected '->'");
+        return new FunctionType({}, type());
+      }
+
       Type* t = type();
-      consume(RIGHT_PAREN, "expected ')' after type");
-      return t;
+
+      if (match(RIGHT_PAREN)) {
+        if (match(ARROW)) return new FunctionType({ t }, type());
+        return t;
+      }
+
+      std::vector<Type*> args = { t };
+
+      while (match(COMMA))
+        args.push_back(type());
+
+      consume(RIGHT_PAREN, "expected ')'");
+      consume(ARROW, "expected '->'");
+      return new FunctionType(args, type());
     }
 
     Token t = advance();
@@ -78,7 +94,8 @@ struct {
 
   Statement* declaration() {
     try {
-      if (match(VAR)) return varDeclaration();
+      if (match(FUNCTION)) return functionDeclaration();
+      else if (match(VAR)) return varDeclaration();
       else if (match(CONST)) return constDeclaration();
 
       return statement();
@@ -89,13 +106,40 @@ struct {
     }
   }
 
+  Statement* functionDeclaration() {
+    Token id = consume(ID, "expected identifier");
+    consume(LEFT_PAREN, "expected '('");
+
+    std::vector<Argument> args;
+    
+    if (peek().type != RIGHT_PAREN) {
+      do {
+        args.push_back(argument());
+      } while (match(COMMA));
+    }
+    consume(RIGHT_PAREN, "expect ')' after parameters");
+
+    Type* returnType = match(COLON)? type() : ANY_T;
+
+    BlockStatement* body = block();
+
+    return new FunctionDeclaration(id, args, returnType, *body);
+  }
+
+  Argument argument() {
+    Token id = consume(ID, "expected identifier");
+    Type* t = match(COLON)? type() : ANY_T;
+
+    return Argument(id, t);
+  }
+
   Statement* varDeclaration() {
     Token id = consume(ID, "expected identifier");
     Type* t = match(COLON)? type() : nullptr;
     Expression* initializer = match(ASSIGN)? expression() : nullptr;
     consume(SEMI, "expected ';'");
 
-    return new VarDeclarationStatement(id, t, initializer);
+    return new VarDeclaration(id, t, initializer);
   }
 
   Statement* constDeclaration() {
@@ -105,7 +149,7 @@ struct {
     Expression* initializer = expression();
     consume(SEMI, "expected ';'");
 
-    return new ConstDeclarationStatement(id, t, *initializer);
+    return new ConstDeclaration(id, t, *initializer);
   }
 
   Statement* statement() {
@@ -134,7 +178,7 @@ struct {
 
       return body;
     }
-    if (match(IF)) {
+    else if (match(IF)) {
       consume(LEFT_PAREN, "expected '(' after 'if'");
       Expression* condition = expression();
       consume(RIGHT_PAREN, "expected ')' after condition");
@@ -149,6 +193,11 @@ struct {
       consume(SEMI, "expected ';'");
       return new PrintStatement(*expr);
     }
+    else if (match(RETURN)) {
+      Expression* value = peek().type == SEMI? nullptr : expression();
+      consume(SEMI, "expect ';' after return value");
+      return new ReturnStatement(value);
+    }
     else if (match(WHILE)) {
       consume(LEFT_PAREN, "expected '(' after 'while'");
       Expression* condition = expression();
@@ -157,17 +206,20 @@ struct {
       
       return new WhileStatement(*condition, *body);
     }
-    else if (match(LEFT_BRACE)) {
-      std::vector<Statement*> statements;
-
-      while (peek().type != RIGHT_BRACE && current < tokens.size() - 1)
-        statements.push_back(declaration());
-
-      consume(RIGHT_BRACE, "expected '}'");
-      return new BlockStatement(statements);
-    }
+    else if (peek().type == LEFT_BRACE) return block();
 
     return expressionStatement();
+  }
+
+  BlockStatement* block() {
+    consume(LEFT_BRACE, "expected '{'");
+    std::vector<Statement*> statements;
+
+    while (peek().type != RIGHT_BRACE && current < tokens.size() - 1)
+      statements.push_back(declaration());
+
+    consume(RIGHT_BRACE, "expected '}'");
+    return new BlockStatement(statements);
   }
 
   Statement* expressionStatement() {
@@ -290,13 +342,33 @@ struct {
   }
 
   Expression* access() {
-    Expression* expr = primary();
+    Expression* expr = call();
 
     while (match(LEFT_BRACKET)) {
       Expression* index = expression();
       const Token bracket = consume(RIGHT_BRACKET, "expected ']' after index");
 
       expr = new ArrayAccessExpression(*expr, *index);
+    }
+
+    return expr;
+  }
+
+  Expression* call() {
+    Expression* expr = primary();
+
+    while (match(LEFT_PAREN)) {
+      std::vector<Expression*> args = {};
+
+      if (peek().type != RIGHT_PAREN) {
+        do {
+          args.push_back(expression());
+        } while (match(COMMA));
+      }
+
+      Token rightParen = consume(RIGHT_PAREN, "expected ')' after arguments");
+
+      expr = new CallExpression(*expr, args, rightParen);
     }
 
     return expr;
@@ -372,9 +444,14 @@ struct {
       if (previous().type == SEMI) return;
 
       switch (peek().type) {
+        case FUNCTION:
         case VAR:
         case CONST:
+        case FOR:
+        case IF:
+        case WHILE:
         case PRINT:
+        case RETURN:
           return;
       }
 

@@ -4,12 +4,13 @@
 #include "Token.h"
 
 struct {
-  std::string_view source;
+  std::string source;
   int start;
   int current;
   int line;
   std::vector<Token> tokens{};
-  std::unordered_map<std::string_view, TokenType> keywords = {
+  std::unordered_map<std::string, TokenType> keywords = {
+    {"function", FUNCTION},
     {"var", VAR},
     {"const", CONST},
     {"any", ANY_TYPE},
@@ -24,8 +25,9 @@ struct {
     {"for", FOR},
     {"if", IF},
     {"else", ELSE},
-    {"while", WHILE},
-    {"print", PRINT}
+    {"print", PRINT},
+    {"return", RETURN},
+    {"while", WHILE}
   };
 
   /**
@@ -59,7 +61,8 @@ struct {
         return tokens.push_back(match('+')? Token(INCREMENT, "++", line) :
           match('=')? Token(PLUS_EQUALS, "+=", line) : Token(PLUS, "+", line));
       case '-':
-        return tokens.push_back(match('-')? Token(DECREMENT, "--", line) :
+        return tokens.push_back(match('>')? Token(ARROW, "->", line) :
+          match('-')? Token(DECREMENT, "--", line) :
           match('=')? Token(MINUS_EQUALS, "-=", line) : Token(MINUS, "-", line));
       case '*':
         return tokens.push_back(match('=')? Token(STAR_EQUALS, "*=", line) : Token(STAR, "*", line));
@@ -162,7 +165,7 @@ struct {
     return source[current + 1];
   }
 
-  std::vector<Token> tokenize(std::string_view source) {
+  std::vector<Token> tokenize(std::string source) {
     this->source = source;
     start = 0;
     current = 0;

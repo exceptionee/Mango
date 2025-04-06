@@ -18,8 +18,7 @@ Value interpret(std::string input) {
   Program* AST = Parser.parse(Lexer.tokenize(input));
   TypeChecker.visitProgram(*AST);
 
-  if (!hadError) return std::any_cast<Value>(Interpreter.visitProgram(*AST));
-  return {};
+  return !hadError? std::any_cast<Value>(Interpreter.visitProgram(*AST)) : Value{};
 }
 
 int main(int argc, char* argv[]) {
@@ -54,17 +53,12 @@ int main(int argc, char* argv[]) {
       auto fallback = TypeChecker.stack;
       Value result = interpret(input);
 
-      if (!hadError) std::cout << result << std::endl;
+      if (!hadError) std::cout << result.toString() << std::endl;
       else {
         hadError = false;
         TypeChecker.stack = fallback;
       }
     }
-  }
-
-  if (fileName.size() <= 6 || fileName.substr(fileName.size() - 6) != ".mango") {
-    std::cerr << "error: file does not end in '.mango'";
-    return 1;
   }
 
   std::ifstream file(fileName);

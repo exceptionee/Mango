@@ -9,6 +9,7 @@ enum TokenType {
   RIGHT_BRACE,
   LEFT_BRACKET,
   RIGHT_BRACKET,
+  ARROW,
   COMMA,
   DOT,
   SEMI,
@@ -39,6 +40,7 @@ enum TokenType {
   GREATER_EQUALS,
   LESS_EQUALS,
   ID,
+  FUNCTION,
   VAR,
   CONST,
   ANY_TYPE,
@@ -57,28 +59,17 @@ enum TokenType {
   FOR,
   IF,
   ELSE,
-  WHILE,
   PRINT,
+  RETURN,
+  WHILE,
   _EOF
 };
 
 struct Token {
   TokenType type;
-  std::string_view lexeme;
+  std::string lexeme;
   int line;
 
-  Token(TokenType type, std::string_view lexeme, int line)
+  Token(TokenType type, std::string lexeme, int line)
     : type(type), lexeme(lexeme), line(line) {}
-
-  Token& operator=(const Token&) = default;
-
-  Token(const Token& token)
-    : type(token.type), lexeme(token.lexeme), line(token.line) {}
-
-  Token(Token&& token)
-    : type(token.type), lexeme(token.lexeme), line(token.line) {}
-
-  friend std::ostream& operator<<(std::ostream& os, Token token) {
-    return (os << "['" << token.lexeme << "', " << token.line << ']');
-  }
 };

@@ -7,12 +7,12 @@
 #include "Type.h"
 
 struct Symbol {
-  enum Mutability { VAR, CONST };
+  enum Declaration { FUNCTION, VAR, CONST };
 
-  Mutability mutability;
+  Declaration declaration;
   Type* type;
 
-  Symbol(Mutability mutability, Type* type) : mutability(mutability), type(type) {}
+  Symbol(Declaration declaration, Type* type) : declaration(declaration), type(type) {}
 };
 
 struct : Visitor {
@@ -39,18 +39,6 @@ struct : Visitor {
     return std::any{};
   }
 
-  std::any visitIfStatement(IfStatement& s) override {
-    Type* condition = std::any_cast<Type*>(visit(s.condition));
-
-    if (condition != ERROR_T && condition != BOOL_T)
-      TypeError("'" + condition->toString() + "' cannot be converted to type 'bool'",
-        Source(s.condition.start.line));
-    
-    visit(s.thenBranch);
-    if (s.elseBranch) visit(*s.elseBranch);
-    return std::any{};
-  }
-
   std::any visitBlockStatement(BlockStatement& s) override {
     stack.push_back({});
 
@@ -66,8 +54,25 @@ struct : Visitor {
     return std::any{};
   }
 
+  std::any visitIfStatement(IfStatement& s) override {
+    Type* condition = std::any_cast<Type*>(visit(s.condition));
+
+    if (condition != ERROR_T && condition != BOOL_T)
+      TypeError("'" + condition->toString() + "' cannot be converted to type 'bool'",
+        Source(s.condition.start.line));
+    
+    visit(s.thenBranch);
+    if (s.elseBranch) visit(*s.elseBranch);
+    return std::any{};
+  }
+
   std::any visitPrintStatement(PrintStatement& s) override {
     visit(s.expr);
+    return std::any{};
+  }
+
+  std::any visitReturnStatement(ReturnStatement& s) override {
+    if (s.value) visit(*s.value);
     return std::any{};
   }
 
@@ -82,16 +87,46 @@ struct : Visitor {
     return std::any{};
   }
 
-  std::any visitVarDeclarationStatement(VarDeclarationStatement& s) override {
+  std::any visitFunctionDeclaration(FunctionDeclaration& s) override {
     std::string id = std::string(s.id.lexeme);
-    Type* valueType = s.initializer != nullptr?
-      std::any_cast<Type*>(visit(*s.initializer)) : NULL_T;
-    Type* type = valueType == ERROR_T? ERROR_T :
-      s.type != nullptr? s.type : s.initializer != nullptr? valueType : ANY_T;
+    std::vector<Type*> args;
+    
+    if (stack.back().find(id) != stack.back().end())
+      TypeError("'" + id + "' has already been declared", Source(s.id.line));
+
+    for (Argument arg : s.args)
+      args.push_back(arg.type);
+
+    stack.back().insert(std::make_pair(id, Symbol(Symbol::FUNCTION,
+      std::find(args.begin(), args.end(), ERROR_T) == args.end()?
+        new FunctionType(args, s.returnType) : ERROR_T
+    )));
+
+    stack.push_back({});
+
+    for (Argument arg : s.args) {
+      std::string lexeme = std::string(arg.id.lexeme);
+      if (stack.back().find(lexeme) != stack.back().end())
+        TypeError("duplicate paramater '" + lexeme + "' not allowed", Source(arg.id.line));
+
+      stack.back().insert(std::make_pair(lexeme, Symbol(Symbol::VAR, arg.type)));
+    }
+
+    for (Statement* statement : s.body.statements)
+      visit(*statement);
+
+    stack.pop_back();
+    return std::any{};
+  }
+
+  std::any visitVarDeclaration(VarDeclaration& s) override {
+    std::string id = std::string(s.id.lexeme);
+    Type* valueType = s.initializer? std::any_cast<Type*>(visit(*s.initializer)) : NULL_T;
+    Type* type = valueType == ERROR_T? ERROR_T : s.type? s.type : s.initializer? valueType : ANY_T;
 
     if (stack.back().find(id) != stack.back().end())
       TypeError("'" + id + "' has already been declared", Source(s.id.line));
-    else if (s.type != nullptr && valueType != ERROR_T && !s.type->superset(valueType)) {
+    else if (s.type && valueType != ERROR_T && !s.type->superset(valueType)) {
       type = ERROR_T;
       TypeError("cannot assign type '" + valueType->toString() + "' to type '" + s.type->toString() + "'",
         Source(s.id.line));
@@ -101,15 +136,14 @@ struct : Visitor {
     return std::any{};
   }
 
-  std::any visitConstDeclarationStatement(ConstDeclarationStatement& s) override {
+  std::any visitConstDeclaration(ConstDeclaration& s) override {
     std::string id = std::string(s.id.lexeme);
     Type* valueType = std::any_cast<Type*>(visit(s.initializer));
-    Type* type = valueType == ERROR_T? ERROR_T :
-      s.type != nullptr? s.type : valueType;
+    Type* type = valueType == ERROR_T? ERROR_T : s.type? s.type : valueType;
 
     if (stack.back().find(id) != stack.back().end())
       TypeError("'" + id + "' has already been declared", Source(s.id.line));
-    else if (s.type != nullptr && valueType != ERROR_T && !s.type->superset(valueType)) {
+    else if (s.type && valueType != ERROR_T && !s.type->superset(valueType)) {
       type = ERROR_T;
       TypeError("cannot assign type '" + valueType->toString() + "' to type '" + s.type->toString() + "'",
         Source(s.id.line));
@@ -150,7 +184,7 @@ struct : Visitor {
 
   std::any visitVarExpression(VarExpression& e) override {
     Symbol* symbol = getSymbol(e.id);
-    return symbol != nullptr? symbol->type : ERROR_T;
+    return symbol? symbol->type : ERROR_T;
   }
 
   std::any visitArrayAccessExpression(ArrayAccessExpression& e) override {
@@ -161,7 +195,7 @@ struct : Visitor {
 
     ArrayType* arrayType = dynamic_cast<ArrayType*>(type);
 
-    if (arrayType == nullptr) {
+    if (!arrayType) {
       TypeError("cannot perform an array access on type '" + type->toString() + "'",
         Source(e.array.start.line));
       return ERROR_T;
@@ -180,13 +214,13 @@ struct : Visitor {
     if (type == ERROR_T) return ERROR_T;
 
     if (VarExpression* expr = dynamic_cast<VarExpression*>(&e.expr)) {
-      if (getSymbol(expr->id)->mutability == Symbol::CONST) {
-        TypeError("cannot reassign constant '" + std::string(expr->id.lexeme) + "'",
+      if (getSymbol(expr->id)->declaration != Symbol::VAR) {
+        TypeError("cannot reassign '" + std::string(expr->id.lexeme) + "'",
           Source(e.expr.start.line));
         return ERROR_T;
       }
     }
-    else if (dynamic_cast<ArrayAccessExpression*>(&e.expr) == nullptr) {
+    else if (!dynamic_cast<ArrayAccessExpression*>(&e.expr)) {
       TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on an r-value",
         Source(e.expr.start.line));
       return ERROR_T;
@@ -218,13 +252,13 @@ struct : Visitor {
       case INCREMENT:
       case DECREMENT:
         if (VarExpression* expr = dynamic_cast<VarExpression*>(&e.expr)) {
-          if (getSymbol(expr->id)->mutability == Symbol::CONST) {
-            TypeError("cannot reassign constant '" + std::string(expr->id.lexeme) + "'",
+          if (getSymbol(expr->id)->declaration != Symbol::VAR) {
+            TypeError("cannot reassign '" + std::string(expr->id.lexeme) + "'",
               Source(e.expr.start.line));
             return ERROR_T;
           }
         }
-        else if (dynamic_cast<ArrayAccessExpression*>(&e.expr) == nullptr) {
+        else if (!dynamic_cast<ArrayAccessExpression*>(&e.expr)) {
           TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on an r-value",
             Source(e.expr.start.line));
           return ERROR_T;
@@ -253,7 +287,9 @@ struct : Visitor {
     if (left == ERROR_T || right == ERROR_T) return ERROR_T;
 
     switch (e.op.type) {
-      case COALESCENCE: return NULL_T;
+      // TODO: make `new UnionType({ left, right })` exclude NULL_T
+      case COALESCENCE: return !left->superset(NULL_T)? left :
+        left == NULL_T? right : new UnionType({ left, right });
       case AND:
       case OR:
         if (left == BOOL_T && right == BOOL_T) return BOOL_T;
@@ -307,13 +343,9 @@ struct : Visitor {
         Source(e.condition.start.line));
       return ERROR_T;
     }
-    else if (valueType != defaultType) {
-      TypeError("the value expression and default expression must have the same type",
-        Source(e._default.start.line));
-      return ERROR_T;
-    }
 
-    return valueType;
+    return valueType == defaultType?
+      valueType : new UnionType({ valueType, defaultType });
   }
 
   std::any visitAssignmentExpression(AssignmentExpression& e) override {
@@ -322,16 +354,16 @@ struct : Visitor {
     if (VarExpression* expr = dynamic_cast<VarExpression*>(&e.l_value)) {
       Symbol* symbol = getSymbol(expr->id);
 
-      if (symbol == nullptr) return ERROR_T;
-      else if (symbol->mutability == Symbol::CONST) {
-        TypeError("cannot reassign constant '" + std::string(expr->id.lexeme) + "'",
+      if (!symbol) return ERROR_T;
+      else if (symbol->declaration != Symbol::VAR) {
+        TypeError("cannot reassign '" + std::string(expr->id.lexeme) + "'",
           Source(e.l_value.start.line));
         return ERROR_T;
       }
 
       left = symbol->type;
     }
-    else if (dynamic_cast<ArrayAccessExpression*>(&e.l_value) == nullptr) {
+    else if (!dynamic_cast<ArrayAccessExpression*>(&e.l_value)) {
       TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on an r-value",
         Source(e.l_value.start.line));
       return ERROR_T;
@@ -367,5 +399,35 @@ struct : Visitor {
           Source(e.value.start.line));
         return ERROR_T;
     }
+  }
+
+  std::any visitCallExpression(CallExpression& e) {
+    Type* callee = std::any_cast<Type*>(visit(e.callee));
+
+    if (callee == ERROR_T) return ERROR_T;
+
+    std::vector<Type*> args;
+
+    for (Expression* item : e.args) {
+      Type* arg = std::any_cast<Type*>(visit(*item));
+
+      if (arg == ERROR_T) return ERROR_T;
+      args.push_back(arg);
+    }
+
+    FunctionType* function = dynamic_cast<FunctionType*>(callee);
+
+    if (!function) {
+      TypeError("cannot call type '" + callee->toString() + "'",
+        Source(e.closeParen.line));
+      return ERROR_T;
+    }
+    else if (!function->equals(new FunctionType(args, function->returnType))) {
+      TypeError("argument mismatch",
+        Source(e.closeParen.line));
+      return ERROR_T;
+    }
+
+    return function->returnType;
   }
 } TypeChecker;

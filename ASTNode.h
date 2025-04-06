@@ -33,8 +33,8 @@ struct LiteralExpression : Expression {
 struct ArrayLiteralExpression : Expression {
   std::vector<Expression*> elements;
 
-  ArrayLiteralExpression(Token lb, std::vector<Expression*>& elements)
-    : Expression(lb), elements(elements) {}
+  ArrayLiteralExpression(Token bracket, std::vector<Expression*>& elements)
+    : Expression(bracket), elements(elements) {}
 
   std::any accept(Visitor& v) override {
     return v.visitArrayLiteralExpression(*this);
@@ -125,21 +125,21 @@ struct AssignmentExpression : Expression {
   }
 };
 
-struct Statement : ASTNode {
-  virtual std::any accept(Visitor& v) = 0;
+struct CallExpression : Expression {
+  Expression& callee;
+  std::vector<Expression*> args;
+  Token closeParen;
+
+  CallExpression(Expression& callee, std::vector<Expression*> args, Token closeParen)
+    : Expression(callee.start), callee(callee), args(args), closeParen(closeParen) {}
+
+  std::any accept(Visitor& v) override {
+    return v.visitCallExpression(*this);
+  }
 };
 
-struct IfStatement : Statement {
-  Expression& condition;
-  Statement& thenBranch;
-  Statement* elseBranch;
-
-  IfStatement(Expression& condition, Statement& thenBranch, Statement* elseBranch)
-    : condition(condition), thenBranch(thenBranch), elseBranch(elseBranch) {}
-
-  std::any accept(Visitor& v) {
-    return v.visitIfStatement(*this);
-  }
+struct Statement : ASTNode {
+  virtual std::any accept(Visitor& v) = 0;
 };
 
 struct BlockStatement : Statement {
@@ -162,6 +162,19 @@ struct ExpressionStatement : public Statement {
   }
 };
 
+struct IfStatement : Statement {
+  Expression& condition;
+  Statement& thenBranch;
+  Statement* elseBranch;
+
+  IfStatement(Expression& condition, Statement& thenBranch, Statement* elseBranch)
+    : condition(condition), thenBranch(thenBranch), elseBranch(elseBranch) {}
+
+  std::any accept(Visitor& v) {
+    return v.visitIfStatement(*this);
+  }
+};
+
 struct PrintStatement : public Statement {
   Expression& expr;
 
@@ -172,6 +185,16 @@ struct PrintStatement : public Statement {
   }
 };
 
+struct ReturnStatement : Statement {
+  Expression* value;
+
+  ReturnStatement(Expression* value)
+    : value(value) {}
+
+  std::any accept(Visitor& v) {
+    return v.visitReturnStatement(*this);
+  }
+};
 
 struct WhileStatement : Statement {
   Expression& condition;
@@ -185,29 +208,50 @@ struct WhileStatement : Statement {
   }
 };
 
-struct VarDeclarationStatement : public Statement {
+struct Argument {
+  Token id;
+  Type* type;
+
+  Argument(Token id, Type* type) : id(id), type(type) {}
+};
+
+struct FunctionDeclaration : public Statement {
+  Token id;
+  std::vector<Argument> args;
+  Type* returnType;
+  BlockStatement& body;
+
+  FunctionDeclaration(Token id, std::vector<Argument> args, Type* returnType, BlockStatement& body)
+    : id(id), args(args), returnType(returnType), body(body) {}
+
+  std::any accept(Visitor& v) {
+    return v.visitFunctionDeclaration(*this);
+  }
+};
+
+struct VarDeclaration : public Statement {
   Token id;
   Type* type;
   Expression* initializer;
 
-  VarDeclarationStatement(Token id, Type* type, Expression* initializer)
+  VarDeclaration(Token id, Type* type, Expression* initializer)
     : id(id), type(type), initializer(initializer) {}
 
   std::any accept(Visitor& v) {
-    return v.visitVarDeclarationStatement(*this);
+    return v.visitVarDeclaration(*this);
   }
 };
 
-struct ConstDeclarationStatement : public Statement {
+struct ConstDeclaration : public Statement {
   Token id;
   Type* type;
   Expression& initializer;
 
-  ConstDeclarationStatement(Token id, Type* type, Expression& initializer)
+  ConstDeclaration(Token id, Type* type, Expression& initializer)
     : id(id), type(type), initializer(initializer) {}
 
   std::any accept(Visitor& v) {
-    return v.visitConstDeclarationStatement(*this);
+    return v.visitConstDeclaration(*this);
   }
 };
 

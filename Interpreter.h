@@ -1,26 +1,32 @@
+#pragma once
+
 #include <any>
 #include <charconv>
-#include <deque>
 #include <iostream>
 #include <math.h>
 #include <system_error>
-#include <unordered_map>
 #include "ASTNode.h"
 #include "Error.h"
 #include "Value.h"
+#include "Environment.h"
 
 #define MATH_OP(left, op, right) std::holds_alternative<long long>(left.data)? \
   Value{std::get<long long>(left.data) op std::get<long long>(right.data)} : \
   Value{std::get<double>(left.data) op std::get<double>(right.data)}
 
+struct Return {
+  Value value;
+  
+  Return(Value value) : value(value) {}
+};
+
 struct : Visitor {
-  std::deque<std::unordered_map<std::string, Value>> stack = {{}};
+  Environment* globals = new Environment(nullptr);
+  Environment* current = globals;
 
   Value& getLValue(Expression& e) {
     if (VarExpression* varExpr = dynamic_cast<VarExpression*>(&e))
-      for (auto rit = stack.rbegin(); rit != stack.rend(); ++rit)
-        for (auto& pair : *rit)
-          if (pair.first == varExpr->id.lexeme) return pair.second;
+      return current->get(std::string(varExpr->id.lexeme));
 
     ArrayAccessExpression* arrayAccess = dynamic_cast<ArrayAccessExpression*>(&e);
     std::vector<Value>* elements = &std::static_pointer_cast<Array>
@@ -45,12 +51,27 @@ struct : Visitor {
 
       const auto result = visit(*p.statements[p.statements.size() - 1]);
 
-      if (dynamic_cast<ExpressionStatement*>(p.statements[p.statements.size() - 1]) != nullptr)
+      if (dynamic_cast<ExpressionStatement*>(p.statements[p.statements.size() - 1]))
         return result;
     }
     catch (RuntimeError e) {}
 
     return Value{std::monostate{}};
+  }
+
+  std::any visitBlockStatement(BlockStatement& s) {
+    Environment* previous = current;
+    current = new Environment(current);
+
+    for (Statement* statement : s.statements)
+      visit(*statement);
+
+    current = previous;
+    return std::any{};
+  }
+
+  std::any visitExpressionStatement(ExpressionStatement& s) override {
+    return visit(s.expr);
   }
 
   std::any visitIfStatement(IfStatement& s) {
@@ -62,23 +83,13 @@ struct : Visitor {
     return std::any{};
   }
 
-  std::any visitBlockStatement(BlockStatement& s) {
-    stack.push_back({});
-
-    for (Statement* statement : s.statements)
-      visit(*statement);
-
-    stack.pop_back();
-    return std::any{};
-  }
-
-  std::any visitExpressionStatement(ExpressionStatement& s) override {
-    return visit(s.expr);
-  }
-
   std::any visitPrintStatement(PrintStatement& s) override {
-    std::cout << std::any_cast<Value>(visit(s.expr)) << '\n';
+    std::cout << std::any_cast<Value>(visit(s.expr)).toString() << std::endl;
     return std::any{};
+  }
+
+  std::any visitReturnStatement(ReturnStatement& s) {
+    throw Return(s.value? std::any_cast<Value>(visit(*s.value)) : Value{std::monostate{}});
   }
 
   std::any visitWhileStatement(WhileStatement& s) {
@@ -89,15 +100,24 @@ struct : Visitor {
     return std::any{};
   }
 
-  std::any visitVarDeclarationStatement(VarDeclarationStatement& s) override {
-    stack.back().insert(std::make_pair(s.id.lexeme, (s.initializer != nullptr)?
-      std::any_cast<Value>(visit(*s.initializer)) : Value{std::monostate{}}));
+  std::any visitFunctionDeclaration(FunctionDeclaration& s) override {
+    current = new Environment(current);
+    current->set(std::string(s.id.lexeme), Value{std::make_shared<Function>(s, current)});
     return std::any{};
   }
 
-  std::any visitConstDeclarationStatement(ConstDeclarationStatement& s) override {
-    stack.back().insert(std::make_pair(s.id.lexeme,
-      std::any_cast<Value>(visit(s.initializer))));
+  std::any visitVarDeclaration(VarDeclaration& s) override {
+    current = new Environment(current);
+    current->set(
+      std::string(s.id.lexeme),
+      s.initializer? std::any_cast<Value>(visit(*s.initializer)) : Value{std::monostate{}}
+    );
+    return std::any{};
+  }
+
+  std::any visitConstDeclaration(ConstDeclaration& s) override {
+    current = new Environment(current);
+    current->set(std::string(s.id.lexeme), std::any_cast<Value>(visit(s.initializer)));
     return std::any{};
   }
 
@@ -138,11 +158,7 @@ struct : Visitor {
   }
 
   std::any visitVarExpression(VarExpression& e) override {
-    for (auto rit = stack.rbegin(); rit != stack.rend(); ++rit)
-      for (const auto& pair : *rit)
-        if (pair.first == e.id.lexeme) return pair.second;
-
-    return Value{std::monostate{}}; // unreachable
+    return current->get(std::string(e.id.lexeme));
   }
 
   std::any visitArrayAccessExpression(ArrayAccessExpression& e) override {
@@ -296,5 +312,30 @@ struct : Visitor {
         return l_value = Value{std::fmod(std::get<double>(l_value.data), std::get<double>(value.data))};
       }
     }
+  }
+
+  std::any visitCallExpression(CallExpression& e) {
+    Value callee = std::any_cast<Value>(visit(e.callee));
+    std::shared_ptr<Function> function = std::static_pointer_cast<Function>(std::get<std::shared_ptr<Object>>(callee.data));
+
+    Environment* env = new Environment(function->closure);
+
+    for (int i = 0; i < function->declaration.args.size(); ++i)
+      env->set(std::string(function->declaration.args[i].id.lexeme), std::any_cast<Value>(visit(*e.args[i])));
+
+    Environment* previous = current;
+    current = env;
+
+    try {
+      for (Statement* statement : function->declaration.body.statements)
+        visit(*statement);
+    }
+    catch(Return r) {
+      current = previous;
+      return r.value;
+    }
+
+    current = previous;
+    return Value{std::monostate{}};
   }
 } Interpreter;
