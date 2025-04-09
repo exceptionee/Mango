@@ -142,6 +142,7 @@ struct : Visitor {
         return Value{result};
       }
       case STRING: return Value{std::make_shared<String>(e.value.lexeme)};
+      case CHAR: return Value{e.value.lexeme[0]};
       case TRUE: return Value{true};
       case FALSE: return Value{false};
       default: return Value{std::monostate{}};

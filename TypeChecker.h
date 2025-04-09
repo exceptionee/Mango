@@ -158,6 +158,7 @@ struct : Visitor {
       case INT: return INT_T;
       case FLOAT: return FLOAT_T;
       case STRING: return STRING_T;
+      case CHAR: return CHAR_T;
       case TRUE:
       case FALSE: return BOOL_T;
       default: return NULL_T;

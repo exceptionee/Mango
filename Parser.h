@@ -399,6 +399,7 @@ struct {
       case INT:
       case FLOAT:
       case STRING:
+      case CHAR:
       case TRUE:
       case FALSE:
       case _NULL:

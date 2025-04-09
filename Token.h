@@ -1,7 +1,5 @@
 #pragma once
 
-#include <ostream>
-
 enum TokenType {
   LEFT_PAREN,
   RIGHT_PAREN,

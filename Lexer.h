@@ -1,3 +1,4 @@
+#include <string>
 #include <unordered_map>
 #include <vector>
 #include "Error.h"
@@ -8,7 +9,7 @@ struct {
   int start;
   int current;
   int line;
-  std::vector<Token> tokens{};
+  std::vector<Token> tokens;
   std::unordered_map<std::string, TokenType> keywords = {
     {"function", FUNCTION},
     {"var", VAR},
@@ -105,18 +106,32 @@ struct {
         return tokens.push_back(match('|')? Token(OR, "||", line) : Token(UNION, "|", line));
       case '&':
         if (match('&')) return tokens.push_back(Token(AND, "&&", line));
-        SyntaxError("unrecognized token '&'", Source(line));
-        return;
+        break;
       case '?':
         return tokens.push_back(match('?')? Token(COALESCENCE, "??", line) : Token(TERNARY, "?", line));
 
-      case '"': // handles strings
-        while (current < source.size() && peek() != '\n')
-          if (advance() == '"') 
-            return tokens.push_back(Token(STRING, source.substr(start + 1, current - start - 2), line));
+      case '"': { // handles strings
+        std::string str = "";
+        
+        while (current < source.size() && peek() != '\n') {
+          char next = advance();
+
+          if (next == '"') return tokens.push_back(Token(STRING, str, line));
+          else if (next == '\\') str += escape();
+          else str += next;
+        }
 
         SyntaxError("unterminated string", Source(line));
-        return;
+        return tokens.push_back(Token(STRING, str, line));
+      }
+
+      case '\'': { // handles chars
+        char value = advance();
+        if (value == '\\') value = escape();
+
+        if (!match('\'')) SyntaxError("unterminated char", Source(line));
+        return tokens.push_back(Token(CHAR, std::string(1, value), line));
+      }
 
       default:
         if (isdigit(c)) { // handles numbers
@@ -140,8 +155,23 @@ struct {
           return tokens.push_back(Token(it == keywords.end()? ID : it->second,
             source.substr(start, current - start), line));
         }
+    }
 
-        SyntaxError("unrecognized token '" + std::string(1, c) + "'", Source(line));
+    SyntaxError("unrecognized token '" + std::string(1, c) + "'", Source(line));
+  }
+
+  char escape() {
+    switch (peek() != '\n'? advance() : 0x0) {
+      case '"': return '"';
+      case '\'': return '\'';
+      case '\\': return '\\';
+      case 'b': return '\b';
+      case 't': return '\t';
+      case 'n': return '\n';
+      case 'r': return '\r';
+      default:
+        SyntaxError("invalid escape sequence", Source(line));
+        return 0x0;
     }
   }
 
@@ -171,6 +201,7 @@ struct {
     current = 0;
     line = 1;
     tokens = {};
+    tokens.reserve(source.size() / 3);
 
     while (current < source.size()) {
       start = current;

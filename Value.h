@@ -32,6 +32,7 @@ struct Value {
     switch (data.index()) {
       case 0: return std::get<long long>(data) == std::get<long long>(v.data);
       case 1: return std::get<double>(data) == std::get<double>(v.data);
+      case 2: return std::get<char>(data) == std::get<char>(v.data);
       case 3: return std::get<bool>(data) == std::get<bool>(v.data);
       case 4: return std::get<std::shared_ptr<Object>>(data)
         ->equals(*std::get<std::shared_ptr<Object>>(v.data));
@@ -43,6 +44,7 @@ struct Value {
     switch (data.index()) {
       case 0: return "\e[33m" + std::to_string(std::get<long long>(data)) + "\e[0m";
       case 1: return "\e[33m" + std::to_string(std::get<double>(data)) + "\e[0m";
+      case 2: return "\e[33m" + std::string(1, std::get<char>(data)) + "\e[0m";
       case 3: return std::get<bool>(data)? "\e[31mtrue\e[0m" : "\e[31mfalse\e[0m";
       case 4: return std::get<std::shared_ptr<Object>>(data)->toString();
       default: return "\e[38;5;250mnull\e[0m";
