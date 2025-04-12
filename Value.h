@@ -5,6 +5,7 @@
 #include <variant>
 #include <vector>
 #include "ASTNode.h"
+#include "Type.h"
 
 struct Environment;
 
@@ -20,6 +21,7 @@ struct Object {
   Object(ObjectType type) : type(type) {}
   virtual ~Object() = default;
   virtual bool equals(Object& o) = 0;
+  virtual Type* typeOf() = 0;
   virtual std::string toString() = 0;
 };
 
@@ -37,6 +39,17 @@ struct Value {
       case 4: return std::get<std::shared_ptr<Object>>(data)
         ->equals(*std::get<std::shared_ptr<Object>>(v.data));
       default: return true; // when both values are null
+    }
+  }
+
+  Type* typeOf() {
+    switch (data.index()) {
+      case 0: return INT_T;
+      case 1: return FLOAT_T;
+      case 2: return CHAR_T;
+      case 3: return BOOL_T;
+      case 4: return std::get<std::shared_ptr<Object>>(data)->typeOf();
+      default: return NULL_T;
     }
   }
 
@@ -62,6 +75,15 @@ struct Function : Object {
   bool equals(Object& o) override {
     return this == &o;
   }
+
+  Type* typeOf() override {
+    std::vector<Type*> args;
+
+    for (Argument arg : declaration.args)
+      args.push_back(arg.type);
+
+    return new FunctionType(args, declaration.returnType);
+  }
   
   std::string toString() override {
     return "\e[34m<function: " + std::string(declaration.id.lexeme) + ">\e[0m";
@@ -79,6 +101,10 @@ struct String : Object {
     return false;
   }
 
+  Type* typeOf() override {
+    return STRING_T;
+  }
+
   std::string toString() override {
     return "\e[32m" + chars + "\e[0m";
   }
@@ -92,6 +118,19 @@ struct Array : Object {
 
   bool equals(Object& o) override {
     return this == &o;
+  }
+
+  Type* typeOf() override {
+    if (elements.empty()) return new ArrayType(NULL_T);
+
+    UnionType* elementsType = new UnionType({});
+
+    for (Value element : elements)
+      elementsType->add(element.typeOf());
+
+    if (elementsType->types.size() == 1)
+      return new ArrayType(elementsType->types[0]);
+    return new ArrayType(elementsType);
   }
   
   std::string toString() override {

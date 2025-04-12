@@ -188,6 +188,36 @@ struct : Visitor {
     return symbol? symbol->type : ERROR_T;
   }
 
+  std::any visitCallExpression(CallExpression& e) {
+    Type* callee = std::any_cast<Type*>(visit(e.callee));
+
+    if (callee == ERROR_T) return ERROR_T;
+
+    std::vector<Type*> args;
+
+    for (Expression* item : e.args) {
+      Type* arg = std::any_cast<Type*>(visit(*item));
+
+      if (arg == ERROR_T) return ERROR_T;
+      args.push_back(arg);
+    }
+
+    FunctionType* function = dynamic_cast<FunctionType*>(callee);
+
+    if (!function) {
+      TypeError("cannot call type '" + callee->toString() + "'",
+        Source(e.closeParen.line));
+      return ERROR_T;
+    }
+    else if (!function->equals(new FunctionType(args, function->returnType))) {
+      TypeError("argument mismatch",
+        Source(e.closeParen.line));
+      return ERROR_T;
+    }
+
+    return function->returnType;
+  }
+
   std::any visitArrayAccessExpression(ArrayAccessExpression& e) override {
     Type* type = std::any_cast<Type*>(visit(e.array));
     Type* indexType = std::any_cast<Type*>(visit(e.index));
@@ -207,6 +237,19 @@ struct : Visitor {
     }
 
     return arrayType->elementsType;
+  }
+
+  std::any visitCastExpression(CastExpression& e) override {
+    Type* type = std::any_cast<Type*>(visit(e.expr));
+
+    if (type == ERROR_T) return ERROR_T;
+    else if (!type->superset(e.type)) {
+      TypeError("cannot cast type '" + type->toString() + "' to type '" + e.type->toString() + "'",
+        Source(e.expr.start.line));
+      return ERROR_T;
+    }
+
+    return e.type;
   }
 
   std::any visitPostfixExpression(PostfixExpression& e) override {
@@ -400,35 +443,5 @@ struct : Visitor {
           Source(e.value.start.line));
         return ERROR_T;
     }
-  }
-
-  std::any visitCallExpression(CallExpression& e) {
-    Type* callee = std::any_cast<Type*>(visit(e.callee));
-
-    if (callee == ERROR_T) return ERROR_T;
-
-    std::vector<Type*> args;
-
-    for (Expression* item : e.args) {
-      Type* arg = std::any_cast<Type*>(visit(*item));
-
-      if (arg == ERROR_T) return ERROR_T;
-      args.push_back(arg);
-    }
-
-    FunctionType* function = dynamic_cast<FunctionType*>(callee);
-
-    if (!function) {
-      TypeError("cannot call type '" + callee->toString() + "'",
-        Source(e.closeParen.line));
-      return ERROR_T;
-    }
-    else if (!function->equals(new FunctionType(args, function->returnType))) {
-      TypeError("argument mismatch",
-        Source(e.closeParen.line));
-      return ERROR_T;
-    }
-
-    return function->returnType;
   }
 } TypeChecker;

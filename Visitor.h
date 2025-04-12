@@ -17,13 +17,14 @@ struct ConstDeclaration;
 struct LiteralExpression;
 struct ArrayLiteralExpression;
 struct VarExpression;
+struct CallExpression;
 struct ArrayAccessExpression;
+struct CastExpression;
 struct PostfixExpression;
 struct UnaryExpression;
 struct BinaryExpression;
 struct TernaryExpression;
 struct AssignmentExpression;
-struct CallExpression;
 
 struct Visitor {
   virtual std::any visit(ASTNode& e) = 0;
@@ -40,11 +41,12 @@ struct Visitor {
   virtual std::any visitLiteralExpression(LiteralExpression& e) = 0;
   virtual std::any visitArrayLiteralExpression(ArrayLiteralExpression& e) = 0;
   virtual std::any visitVarExpression(VarExpression& e) = 0;
+  virtual std::any visitCallExpression(CallExpression& e) = 0;
   virtual std::any visitArrayAccessExpression(ArrayAccessExpression& e) = 0;
+  virtual std::any visitCastExpression(CastExpression& e) = 0;
   virtual std::any visitPostfixExpression(PostfixExpression& e) = 0;
   virtual std::any visitUnaryExpression(UnaryExpression& e) = 0;
   virtual std::any visitBinaryExpression(BinaryExpression& e) = 0;
   virtual std::any visitTernaryExpression(TernaryExpression& e) = 0;
   virtual std::any visitAssignmentExpression(AssignmentExpression& e) = 0;
-  virtual std::any visitCallExpression(CallExpression& e) = 0;
 };

@@ -162,6 +162,31 @@ struct : Visitor {
     return current->get(std::string(e.id.lexeme));
   }
 
+  std::any visitCallExpression(CallExpression& e) {
+    Value callee = std::any_cast<Value>(visit(e.callee));
+    std::shared_ptr<Function> function = std::static_pointer_cast<Function>(std::get<std::shared_ptr<Object>>(callee.data));
+
+    Environment* env = new Environment(function->closure);
+
+    for (int i = 0; i < function->declaration.args.size(); ++i)
+      env->set(std::string(function->declaration.args[i].id.lexeme), std::any_cast<Value>(visit(*e.args[i])));
+
+    Environment* previous = current;
+    current = env;
+
+    try {
+      for (Statement* statement : function->declaration.body.statements)
+        visit(*statement);
+    }
+    catch(Return r) {
+      current = previous;
+      return r.value;
+    }
+
+    current = previous;
+    return Value{std::monostate{}};
+  }
+
   std::any visitArrayAccessExpression(ArrayAccessExpression& e) override {
     const std::vector<Value> elements = std::static_pointer_cast<Array>
       (std::get<std::shared_ptr<Object>>(std::any_cast<Value>(visit(e.array)).data))->elements;
@@ -171,6 +196,14 @@ struct : Visitor {
     if (index >= 0 && index < elements.size()) return elements[index];
 
     throw RuntimeError("index " + std::to_string(index) + " out of bounds for length " + std::to_string(elements.size()), Source(e.index.start.line));
+  }
+
+  std::any visitCastExpression(CastExpression& e) override {
+    Value value = std::any_cast<Value>(visit(e.expr));
+    
+    if (e.type->superset(value.typeOf())) return value;
+
+    throw RuntimeError("failed to cast type '" + value.typeOf()->toString() + "' to type '" + e.type->toString() + "'", Source(e.start.line));
   }
 
   std::any visitPostfixExpression(PostfixExpression& e) override {
@@ -313,30 +346,5 @@ struct : Visitor {
         return l_value = Value{std::fmod(std::get<double>(l_value.data), std::get<double>(value.data))};
       }
     }
-  }
-
-  std::any visitCallExpression(CallExpression& e) {
-    Value callee = std::any_cast<Value>(visit(e.callee));
-    std::shared_ptr<Function> function = std::static_pointer_cast<Function>(std::get<std::shared_ptr<Object>>(callee.data));
-
-    Environment* env = new Environment(function->closure);
-
-    for (int i = 0; i < function->declaration.args.size(); ++i)
-      env->set(std::string(function->declaration.args[i].id.lexeme), std::any_cast<Value>(visit(*e.args[i])));
-
-    Environment* previous = current;
-    current = env;
-
-    try {
-      for (Statement* statement : function->declaration.body.statements)
-        visit(*statement);
-    }
-    catch(Return r) {
-      current = previous;
-      return r.value;
-    }
-
-    current = previous;
-    return Value{std::monostate{}};
   }
 } Interpreter;

@@ -333,10 +333,19 @@ struct {
   }
 
   Expression* postfix() {
-    Expression* expr = access();
+    Expression* expr = cast();
 
     if (match(INCREMENT) || match(DECREMENT))
       return new PostfixExpression(*expr, previous());
+
+    return expr;
+  }
+
+  Expression* cast() {
+    Expression* expr = access();
+
+    while (match(AS))
+      expr = new CastExpression(*expr, type());
 
     return expr;
   }

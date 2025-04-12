@@ -51,6 +51,19 @@ struct VarExpression : Expression {
   }
 };
 
+struct CallExpression : Expression {
+  Expression& callee;
+  std::vector<Expression*> args;
+  Token closeParen;
+
+  CallExpression(Expression& callee, std::vector<Expression*> args, Token closeParen)
+    : Expression(callee.start), callee(callee), args(args), closeParen(closeParen) {}
+
+  std::any accept(Visitor& v) override {
+    return v.visitCallExpression(*this);
+  }
+};
+
 struct ArrayAccessExpression : Expression {
   Expression& array;
   Expression& index;
@@ -60,6 +73,18 @@ struct ArrayAccessExpression : Expression {
 
   std::any accept(Visitor& v) override {
     return v.visitArrayAccessExpression(*this);
+  }
+};
+
+struct CastExpression : Expression {
+  Expression& expr;
+  Type* type;
+
+  CastExpression(Expression& expr, Type* type)
+    : Expression(expr.start), expr(expr), type(type) {}
+
+  std::any accept(Visitor& v) override {
+    return v.visitCastExpression(*this);
   }
 };
 
@@ -122,19 +147,6 @@ struct AssignmentExpression : Expression {
 
   std::any accept(Visitor& v) override {
     return v.visitAssignmentExpression(*this);
-  }
-};
-
-struct CallExpression : Expression {
-  Expression& callee;
-  std::vector<Expression*> args;
-  Token closeParen;
-
-  CallExpression(Expression& callee, std::vector<Expression*> args, Token closeParen)
-    : Expression(callee.start), callee(callee), args(args), closeParen(closeParen) {}
-
-  std::any accept(Visitor& v) override {
-    return v.visitCallExpression(*this);
   }
 };
 
