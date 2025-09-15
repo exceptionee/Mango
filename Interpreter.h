@@ -59,7 +59,7 @@ struct : Visitor {
     return Value{std::monostate{}};
   }
 
-  std::any visitBlockStatement(BlockStatement& s) {
+  std::any visitBlockStatement(BlockStatement& s) override {
     Environment* previous = current;
     current = new Environment(current);
 
@@ -74,7 +74,7 @@ struct : Visitor {
     return visit(s.expr);
   }
 
-  std::any visitIfStatement(IfStatement& s) {
+  std::any visitIfStatement(IfStatement& s) override  {
     if (std::get<bool>(std::any_cast<Value>(visit(s.condition)).data))
       visit(s.thenBranch);
     else if (s.elseBranch)
@@ -88,11 +88,11 @@ struct : Visitor {
     return std::any{};
   }
 
-  std::any visitReturnStatement(ReturnStatement& s) {
+  std::any visitReturnStatement(ReturnStatement& s) override {
     throw Return(s.value? std::any_cast<Value>(visit(*s.value)) : Value{std::monostate{}});
   }
 
-  std::any visitWhileStatement(WhileStatement& s) {
+  std::any visitWhileStatement(WhileStatement& s) override {
     while (std::get<bool>(std::any_cast<Value>(visit(s.condition)).data)) {
       visit(s.body);
     }
@@ -162,7 +162,7 @@ struct : Visitor {
     return current->get(std::string(e.id.lexeme));
   }
 
-  std::any visitCallExpression(CallExpression& e) {
+  std::any visitCallExpression(CallExpression& e) override {
     Value callee = std::any_cast<Value>(visit(e.callee));
     std::shared_ptr<Function> function = std::static_pointer_cast<Function>(std::get<std::shared_ptr<Object>>(callee.data));
 

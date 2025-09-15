@@ -87,14 +87,13 @@ struct {
       case CHAR_TYPE: return CHAR_T;
       case BOOL_TYPE: return BOOL_T;
       case _NULL: return NULL_T;
+      default: throw SyntaxError("expected type", Source(t.line));
     }
-
-    throw SyntaxError("expected type", Source(t.line));
   }
 
   Statement* declaration() {
     try {
-      if (match(FUNCTION)) return functionDeclaration();
+      if (match(FUNC)) return functionDeclaration();
       else if (match(VAR)) return varDeclaration();
       else if (match(CONST)) return constDeclaration();
 
@@ -414,9 +413,8 @@ struct {
       case _NULL:
         return new LiteralExpression(advance());
       case ID: return new VarExpression(advance());
+      default: throw SyntaxError("expected expression", Source(peek().line));
     }
-
-    throw SyntaxError("expected expression", Source(peek().line));
   }
 
   inline Token advance() {
@@ -454,7 +452,7 @@ struct {
       if (previous().type == SEMI) return;
 
       switch (peek().type) {
-        case FUNCTION:
+        case FUNC:
         case VAR:
         case CONST:
         case FOR:
@@ -463,9 +461,8 @@ struct {
         case PRINT:
         case RETURN:
           return;
+        default: advance();
       }
-
-      advance();
     }
   }
 } Parser;

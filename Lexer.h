@@ -11,7 +11,7 @@ struct {
   int line;
   std::vector<Token> tokens;
   std::unordered_map<std::string, TokenType> keywords = {
-    {"function", FUNCTION},
+    {"func", FUNC},
     {"var", VAR},
     {"const", CONST},
     {"any", ANY_TYPE},

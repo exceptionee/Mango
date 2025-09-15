@@ -38,7 +38,7 @@ enum TokenType {
   GREATER_EQUALS,
   LESS_EQUALS,
   ID,
-  FUNCTION,
+  FUNC,
   VAR,
   CONST,
   ANY_TYPE,

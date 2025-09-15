@@ -188,7 +188,7 @@ struct : Visitor {
     return symbol? symbol->type : ERROR_T;
   }
 
-  std::any visitCallExpression(CallExpression& e) {
+  std::any visitCallExpression(CallExpression& e) override {
     Type* callee = std::any_cast<Type*>(visit(e.callee));
 
     if (callee == ERROR_T) return ERROR_T;

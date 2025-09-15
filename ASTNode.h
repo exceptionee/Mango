@@ -12,7 +12,7 @@ struct ASTNode {
   virtual std::any accept(Visitor& v) = 0;
 };
 
-struct Expression : ASTNode {
+struct Expression : public ASTNode {
   Token start;
 
   Expression(Token& start) : start(start) {}
@@ -20,7 +20,7 @@ struct Expression : ASTNode {
   virtual std::any accept(Visitor& v) = 0;
 };
 
-struct LiteralExpression : Expression {
+struct LiteralExpression : public Expression {
   Token value;
 
   LiteralExpression(Token value) : Expression(value), value(value) {}
@@ -30,7 +30,7 @@ struct LiteralExpression : Expression {
   }
 };
 
-struct ArrayLiteralExpression : Expression {
+struct ArrayLiteralExpression : public Expression {
   std::vector<Expression*> elements;
 
   ArrayLiteralExpression(Token bracket, std::vector<Expression*>& elements)
@@ -41,7 +41,7 @@ struct ArrayLiteralExpression : Expression {
   }
 };
 
-struct VarExpression : Expression {
+struct VarExpression : public Expression {
   Token id;
 
   VarExpression(Token id) : Expression(id), id(id) {}
@@ -51,7 +51,7 @@ struct VarExpression : Expression {
   }
 };
 
-struct CallExpression : Expression {
+struct CallExpression : public Expression {
   Expression& callee;
   std::vector<Expression*> args;
   Token closeParen;
@@ -64,7 +64,7 @@ struct CallExpression : Expression {
   }
 };
 
-struct ArrayAccessExpression : Expression {
+struct ArrayAccessExpression : public Expression {
   Expression& array;
   Expression& index;
 
@@ -76,7 +76,7 @@ struct ArrayAccessExpression : Expression {
   }
 };
 
-struct CastExpression : Expression {
+struct CastExpression : public Expression {
   Expression& expr;
   Type* type;
 
@@ -88,7 +88,7 @@ struct CastExpression : Expression {
   }
 };
 
-struct PostfixExpression : Expression {
+struct PostfixExpression : public Expression {
   Expression& expr;
   Token op;
 
@@ -100,7 +100,7 @@ struct PostfixExpression : Expression {
   }
 };
 
-struct UnaryExpression : Expression {
+struct UnaryExpression : public Expression {
   Token op;
   Expression& expr;
 
@@ -111,7 +111,7 @@ struct UnaryExpression : Expression {
   }
 };
 
-struct BinaryExpression : Expression {
+struct BinaryExpression : public Expression {
   Expression& left;
   Token op;
   Expression& right;
@@ -124,7 +124,7 @@ struct BinaryExpression : Expression {
   }
 };
 
-struct TernaryExpression : Expression {
+struct TernaryExpression : public Expression {
   Expression& condition;
   Expression& value;
   Expression& _default;
@@ -137,7 +137,7 @@ struct TernaryExpression : Expression {
   }
 };
 
-struct AssignmentExpression : Expression {
+struct AssignmentExpression : public Expression {
   Expression& l_value;
   Token op;
   Expression& value;
@@ -150,11 +150,11 @@ struct AssignmentExpression : Expression {
   }
 };
 
-struct Statement : ASTNode {
+struct Statement : public ASTNode {
   virtual std::any accept(Visitor& v) = 0;
 };
 
-struct BlockStatement : Statement {
+struct BlockStatement : public Statement {
   std::vector<Statement*> statements;
 
   BlockStatement(std::vector<Statement*> statements) : statements(statements) {}
@@ -174,7 +174,7 @@ struct ExpressionStatement : public Statement {
   }
 };
 
-struct IfStatement : Statement {
+struct IfStatement : public Statement {
   Expression& condition;
   Statement& thenBranch;
   Statement* elseBranch;
@@ -197,7 +197,7 @@ struct PrintStatement : public Statement {
   }
 };
 
-struct ReturnStatement : Statement {
+struct ReturnStatement : public Statement {
   Expression* value;
 
   ReturnStatement(Expression* value)
@@ -208,7 +208,7 @@ struct ReturnStatement : Statement {
   }
 };
 
-struct WhileStatement : Statement {
+struct WhileStatement : public Statement {
   Expression& condition;
   Statement& body;
 
@@ -267,7 +267,7 @@ struct ConstDeclaration : public Statement {
   }
 };
 
-struct Program : ASTNode {
+struct Program : public ASTNode {
   std::vector<Statement*> statements;
 
   Program(std::vector<Statement*> statements) : statements(statements) {}
