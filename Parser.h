@@ -214,8 +214,11 @@ struct {
     consume(LEFT_BRACE, "expected '{'");
     std::vector<Statement*> statements;
 
-    while (peek().type != RIGHT_BRACE && current < tokens.size() - 1)
-      statements.push_back(declaration());
+    while (peek().type != RIGHT_BRACE && current < tokens.size() - 1) {
+      Statement* statement = declaration();
+
+      if (statement) statements.push_back(statement);
+    }
 
     consume(RIGHT_BRACE, "expected '}'");
     return new BlockStatement(statements);
