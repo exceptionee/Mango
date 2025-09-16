@@ -45,16 +45,18 @@ struct : Visitor {
   }
 
   std::any visitProgram(Program& p) override {
-    try {
-      for (int i = 0; i < p.statements.size() - 1; ++i)
-        visit(*p.statements[i]);
-
-      const auto result = visit(*p.statements[p.statements.size() - 1]);
-
-      if (dynamic_cast<ExpressionStatement*>(p.statements[p.statements.size() - 1]))
-        return result;
+    if (p.statements.size() > 0) {
+      try {
+        for (int i = 0; i < p.statements.size() - 1; ++i)
+          visit(*p.statements[i]);
+  
+        const auto result = visit(*p.statements[p.statements.size() - 1]);
+  
+        if (dynamic_cast<ExpressionStatement*>(p.statements[p.statements.size() - 1]))
+          return result;
+      }
+      catch (RuntimeError e) {}
     }
-    catch (RuntimeError e) {}
 
     return Value{std::monostate{}};
   }
