@@ -1,7 +1,7 @@
-#include <any>
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <chrono>
 #include "argparse.hpp"
 #include "ASTNode.h"
 #include "Error.h"
@@ -18,7 +18,7 @@ Value interpret(std::string input) {
   Program* AST = Parser.parse(Lexer.tokenize(input));
   TypeChecker.visitProgram(*AST);
 
-  return !hadError? std::any_cast<Value>(Interpreter.visitProgram(*AST)) : Value{};
+  return !hadError? Interpreter.eval(*AST) : Value{};
 }
 
 int main(int argc, char* argv[]) {

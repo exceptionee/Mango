@@ -67,9 +67,9 @@ struct Value {
 
 struct Function : Object {
   FunctionDeclaration& declaration;
-  Environment* closure;
+  std::shared_ptr<Environment> closure;
 
-  Function(FunctionDeclaration& declaration, Environment* closure)
+  Function(FunctionDeclaration& declaration, std::shared_ptr<Environment> closure)
     : Object{ObjectType::OBJECT_FUNCTION}, declaration(declaration), closure(closure) {}
 
   bool equals(Object& o) override {

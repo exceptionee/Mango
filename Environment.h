@@ -4,10 +4,10 @@
 struct Value;
 
 struct Environment {
-  Environment* parent;
+  std::shared_ptr<Environment> parent;
   std::unordered_map<std::string, Value> map;
 
-  Environment(Environment* parent) : parent(parent) {}
+  Environment(std::shared_ptr<Environment> parent) : parent(parent) {}
 
   void set(std::string key, Value value) {
     map[key] = value;

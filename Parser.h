@@ -379,7 +379,7 @@ struct {
 
       Token rightParen = consume(RIGHT_PAREN, "expected ')' after arguments");
 
-      expr = new CallExpression(*expr, args, rightParen);
+      expr = new CallExpression(*expr, args);
     }
 
     return expr;
