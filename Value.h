@@ -9,16 +9,7 @@
 
 struct Environment;
 
-enum ObjectType {
-  OBJECT_FUNCTION,
-  OBJECT_STRING,
-  OBJECT_ARRAY
-};
-
 struct Object {
-  ObjectType type;
-
-  Object(ObjectType type) : type(type) {}
   virtual ~Object() = default;
   virtual bool equals(Object& o) = 0;
   virtual Type* typeOf() = 0;
@@ -70,7 +61,7 @@ struct Function : Object {
   std::shared_ptr<Environment> closure;
 
   Function(FunctionDeclaration& declaration, std::shared_ptr<Environment> closure)
-    : Object{ObjectType::OBJECT_FUNCTION}, declaration(declaration), closure(closure) {}
+    : declaration(declaration), closure(closure) {}
 
   bool equals(Object& o) override {
     return this == &o;
@@ -93,11 +84,11 @@ struct Function : Object {
 struct String : Object {
   std::string chars;
 
-  String(std::string const& chars) : Object {OBJECT_STRING}, chars(chars) {}
+  String(std::string const& chars) : chars(chars) {}
 
   bool equals(Object& o) override {
-    if (o.type == OBJECT_STRING)
-      return chars == ((String*) &o)->chars;
+    if (auto other = dynamic_cast<String*>(&o))
+      return chars == other->chars;
     return false;
   }
 
@@ -114,7 +105,7 @@ struct Array : Object {
   std::vector<Value> elements;
 
   Array(std::vector<Value> const& elements)
-    : Object{ObjectType::OBJECT_ARRAY}, elements(elements) {}
+    : elements(elements) {}
 
   bool equals(Object& o) override {
     return this == &o;
