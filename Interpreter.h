@@ -36,8 +36,12 @@ struct : Visitor {
       (std::get<std::shared_ptr<Object>>(eval(arrayAccess->array).data))->elements;
     const long long index = std::get<long long>(eval(arrayAccess->index).data);
 
-    if (index < 0 || index >= elements->size())
-      throw RuntimeError("index " + std::to_string(index) + " out of bounds for length " + std::to_string(elements->size()), Source((*arrayAccess).index.start.line));
+    if (index < 0 || index >= elements->size()) {
+      throw RuntimeError(
+        "index " + std::to_string(index) + " out of bounds for length " + std::to_string(elements->size()),
+        Source(arrayAccess->index.start.line)
+      );
+    }
 
     return (*elements)[index];
   }
