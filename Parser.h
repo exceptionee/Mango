@@ -387,6 +387,10 @@ struct {
 
   Expression* primary() {
     if (match(LEFT_PAREN)) {
+      try {
+      }
+      catch(SyntaxError e) {
+      }
       Expression* expr = expression();
       consume(RIGHT_PAREN, "expected ')' after expression");
       return expr;

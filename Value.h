@@ -77,7 +77,7 @@ struct Function : Object {
   }
   
   std::string toString() override {
-    return "\e[34m<function: " + std::string(declaration.id.lexeme) + ">\e[0m";
+    return "\e[34m<function: " + declaration.id.lexeme + ">\e[0m";
   }
 };
 

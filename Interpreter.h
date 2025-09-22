@@ -29,7 +29,7 @@ struct : Visitor {
 
   Value& getLValue(Expression& e) {
     if (VarExpression* varExpr = dynamic_cast<VarExpression*>(&e))
-      return current->get(std::string(varExpr->id.lexeme));
+      return current->get(varExpr->id.lexeme);
 
     ArrayAccessExpression* arrayAccess = dynamic_cast<ArrayAccessExpression*>(&e);
     std::vector<Value>* elements = &std::static_pointer_cast<Array>
@@ -105,20 +105,20 @@ struct : Visitor {
 
   void visitFunctionDeclaration(FunctionDeclaration& s) override {
     current = std::make_shared<Environment>(current);
-    current->set(std::string(s.id.lexeme), Value{std::make_shared<Function>(s, current)});
+    current->set(s.id.lexeme, Value{std::make_shared<Function>(s, current)});
   }
 
   void visitVarDeclaration(VarDeclaration& s) override {
     current = std::make_shared<Environment>(current);
     current->set(
-      std::string(s.id.lexeme),
+      s.id.lexeme,
       s.initializer? eval(*s.initializer) : Value{std::monostate{}}
     );
   }
 
   void visitConstDeclaration(ConstDeclaration& s) override {
     current = std::make_shared<Environment>(current);
-    current->set(std::string(s.id.lexeme), eval(s.initializer));
+    current->set(s.id.lexeme, eval(s.initializer));
   }
 
   void visitLiteralExpression(LiteralExpression& e) override {
@@ -128,7 +128,7 @@ struct : Visitor {
         auto [_, ec] = std::from_chars(e.value.lexeme.data(), e.value.lexeme.data() + e.value.lexeme.size(), result);
         
         if (ec == std::errc::result_out_of_range)
-          throw RuntimeError("number " + std::string(e.value.lexeme) + " out of range for type 'int'", Source(e.value.line));
+          throw RuntimeError("number " + e.value.lexeme + " out of range for type 'int'", Source(e.value.line));
 
         RETURN(Value{result});
       }
@@ -137,7 +137,7 @@ struct : Visitor {
         auto [_, ec] = std::from_chars(e.value.lexeme.data(), e.value.lexeme.data() + e.value.lexeme.size(), result);
         
         if (ec == std::errc::result_out_of_range)
-          throw RuntimeError("number " + std::string(e.value.lexeme) + " out of range for type 'float'", Source(e.value.line));
+          throw RuntimeError("number " + e.value.lexeme + " out of range for type 'float'", Source(e.value.line));
 
         RETURN(Value{result});
       }
@@ -159,7 +159,7 @@ struct : Visitor {
   }
 
   void visitVarExpression(VarExpression& e) override {
-    RETURN(current->get(std::string(e.id.lexeme)));
+    RETURN(current->get(e.id.lexeme));
   }
 
   void visitCallExpression(CallExpression& e) override {
@@ -169,7 +169,7 @@ struct : Visitor {
     std::shared_ptr<Environment> env = std::make_shared<Environment>(function->closure);
 
     for (int i = 0; i < function->declaration.args.size(); ++i)
-      env->set(std::string(function->declaration.args[i].id.lexeme), eval(*e.args[i]));
+      env->set(function->declaration.args[i].id.lexeme, eval(*e.args[i]));
 
     std::shared_ptr<Environment> previous = current;
     current = env;

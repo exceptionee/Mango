@@ -26,7 +26,7 @@ struct : Visitor {
       for (auto& pair : *rit)
         if (pair.first == t.lexeme) return &pair.second;
 
-    ReferenceError("'" + std::string(t.lexeme) + "' has not been declared",
+    ReferenceError("'" + t.lexeme + "' has not been declared",
       Source(t.line));
     return nullptr;
   }
@@ -88,7 +88,7 @@ struct : Visitor {
   }
 
   void visitFunctionDeclaration(FunctionDeclaration& s) override {
-    std::string id = std::string(s.id.lexeme);
+    std::string id = s.id.lexeme;
     std::vector<Type*> args;
     
     if (stack.back().find(id) != stack.back().end())
@@ -105,7 +105,7 @@ struct : Visitor {
     stack.push_back({});
 
     for (Argument arg : s.args) {
-      std::string lexeme = std::string(arg.id.lexeme);
+      std::string lexeme = arg.id.lexeme;
       if (stack.back().find(lexeme) != stack.back().end())
         TypeError("duplicate paramater '" + lexeme + "' not allowed", Source(arg.id.line));
 
@@ -119,7 +119,7 @@ struct : Visitor {
   }
 
   void visitVarDeclaration(VarDeclaration& s) override {
-    std::string id = std::string(s.id.lexeme);
+    std::string id = s.id.lexeme;
     Type* valueType = s.initializer? get(*s.initializer) : NULL_T;
     Type* type = valueType == ERROR_T? ERROR_T : s.type? s.type : s.initializer? valueType : ANY_T;
 
@@ -135,7 +135,7 @@ struct : Visitor {
   }
 
   void visitConstDeclaration(ConstDeclaration& s) override {
-    std::string id = std::string(s.id.lexeme);
+    std::string id = s.id.lexeme;
     Type* valueType = get(s.initializer);
     Type* type = valueType == ERROR_T? ERROR_T : s.type? s.type : valueType;
 
@@ -256,13 +256,13 @@ struct : Visitor {
 
     if (VarExpression* expr = dynamic_cast<VarExpression*>(&e.expr)) {
       if (getSymbol(expr->id)->declaration != Symbol::VAR) {
-        TypeError("cannot reassign '" + std::string(expr->id.lexeme) + "'",
+        TypeError("cannot reassign '" + expr->id.lexeme + "'",
           Source(e.expr.start.line));
         RETURN(ERROR_T);
       }
     }
     else if (!dynamic_cast<ArrayAccessExpression*>(&e.expr)) {
-      TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on an r-value",
+      TypeError("cannot perform operation '" + e.op.lexeme + "' on an r-value",
         Source(e.expr.start.line));
       RETURN(ERROR_T);
     }
@@ -270,7 +270,7 @@ struct : Visitor {
     if (type == INT_T) RETURN(INT_T);
     else if (type == FLOAT_T) RETURN(FLOAT_T);
 
-    TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on type '" + type->toString() + "'",
+    TypeError("cannot perform operation '" + e.op.lexeme + "' on type '" + type->toString() + "'",
       Source(e.expr.start.line));
     RETURN(ERROR_T);
   }
@@ -286,7 +286,7 @@ struct : Visitor {
         if (type == INT_T) RETURN(INT_T);
         else if (type == FLOAT_T) RETURN(FLOAT_T);
         
-        TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on type '" + type->toString() + "'",
+        TypeError("cannot perform operation '" + e.op.lexeme + "' on type '" + type->toString() + "'",
           Source(e.expr.start.line));
         RETURN(ERROR_T);
 
@@ -294,13 +294,13 @@ struct : Visitor {
       case DECREMENT:
         if (VarExpression* expr = dynamic_cast<VarExpression*>(&e.expr)) {
           if (getSymbol(expr->id)->declaration != Symbol::VAR) {
-            TypeError("cannot reassign '" + std::string(expr->id.lexeme) + "'",
+            TypeError("cannot reassign '" + expr->id.lexeme + "'",
               Source(e.expr.start.line));
             RETURN(ERROR_T);
           }
         }
         else if (!dynamic_cast<ArrayAccessExpression*>(&e.expr)) {
-          TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on an r-value",
+          TypeError("cannot perform operation '" + e.op.lexeme + "' on an r-value",
             Source(e.expr.start.line));
           RETURN(ERROR_T);
         }
@@ -308,7 +308,7 @@ struct : Visitor {
         if (type == INT_T) RETURN(INT_T);
         else if (type == FLOAT_T) RETURN(FLOAT_T);
 
-        TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on type '" + type->toString() + "'",
+        TypeError("cannot perform operation '" + e.op.lexeme + "' on type '" + type->toString() + "'",
           Source(e.expr.start.line));
         RETURN(ERROR_T);
 
@@ -335,7 +335,7 @@ struct : Visitor {
       case OR:
         if (left == BOOL_T && right == BOOL_T) RETURN(BOOL_T);
 
-        TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on types '" + left->toString() + "' and '" + right->toString() + "'",
+        TypeError("cannot perform operation '" + e.op.lexeme + "' on types '" + left->toString() + "' and '" + right->toString() + "'",
           Source(e.op.line));
         RETURN(ERROR_T);
 
@@ -347,7 +347,7 @@ struct : Visitor {
       case LESS_EQUALS:
         if (left == INT_T && right == INT_T || left == FLOAT_T && right == FLOAT_T) RETURN(BOOL_T);
           
-        TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on types '" + left->toString() + "' and '" + right->toString() + "'",
+        TypeError("cannot perform operation '" + e.op.lexeme + "' on types '" + left->toString() + "' and '" + right->toString() + "'",
           Source(e.op.line));
         RETURN(ERROR_T);
 
@@ -364,7 +364,7 @@ struct : Visitor {
         if (left == INT_T && right == INT_T) RETURN(INT_T);
         else if (left == FLOAT_T && right == FLOAT_T) RETURN(FLOAT_T);
 
-        TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on types '" + left->toString() + "' and '" + right->toString() + "'",
+        TypeError("cannot perform operation '" + e.op.lexeme + "' on types '" + left->toString() + "' and '" + right->toString() + "'",
           Source(e.op.line));
         RETURN(ERROR_T);
     }
@@ -395,7 +395,7 @@ struct : Visitor {
 
       if (!symbol) RETURN(ERROR_T);
       else if (symbol->declaration != Symbol::VAR) {
-        TypeError("cannot reassign '" + std::string(expr->id.lexeme) + "'",
+        TypeError("cannot reassign '" + expr->id.lexeme + "'",
           Source(e.l_value.start.line));
         RETURN(ERROR_T);
       }
@@ -403,7 +403,7 @@ struct : Visitor {
       left = symbol->type;
     }
     else if (!dynamic_cast<ArrayAccessExpression*>(&e.l_value)) {
-      TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on an r-value",
+      TypeError("cannot perform operation '" + e.op.lexeme + "' on an r-value",
         Source(e.l_value.start.line));
       RETURN(ERROR_T);
     }
@@ -417,7 +417,7 @@ struct : Visitor {
       case ASSIGN:
         if (left->superset(right)) RETURN(right);
 
-        TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on types '" + left->toString() + "' and '" + right->toString() + "'",
+        TypeError("cannot perform operation '" + e.op.lexeme + "' on types '" + left->toString() + "' and '" + right->toString() + "'",
           Source(e.value.start.line));
         RETURN(ERROR_T);
 
@@ -434,7 +434,7 @@ struct : Visitor {
         if (left == INT_T && right == INT_T) RETURN(INT_T);
         else if (left == FLOAT_T && right == FLOAT_T) RETURN(FLOAT_T);
 
-        TypeError("cannot perform operation '" + std::string(e.op.lexeme) + "' on types '" + left->toString() + "' and '" + right->toString() + "'",
+        TypeError("cannot perform operation '" + e.op.lexeme + "' on types '" + left->toString() + "' and '" + right->toString() + "'",
           Source(e.value.start.line));
         RETURN(ERROR_T);
     }
