@@ -29,6 +29,8 @@ struct {
     {"else", ELSE},
     {"print", PRINT},
     {"return", RETURN},
+    {"break", BREAK},
+    {"continue", CONTINUE},
     {"while", WHILE}
   };
 

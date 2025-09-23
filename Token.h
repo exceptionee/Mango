@@ -60,6 +60,8 @@ enum TokenType {
   ELSE,
   PRINT,
   RETURN,
+  BREAK,
+  CONTINUE,
   WHILE,
   _EOF
 };

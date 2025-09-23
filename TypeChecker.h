@@ -9,7 +9,8 @@
 #define RETURN(type) do { returnType = type; return; } while (0)
 
 enum class Context {
-  FUNCTION
+  FUNCTION,
+  LOOP
 };
 
 struct : Visitor {
@@ -77,6 +78,20 @@ struct : Visitor {
     if (s.value) visit(*s.value);
   }
 
+  void visitBreakStatement(BreakStatement& s) override {
+    if (std::find(contexts.begin(), contexts.end(), Context::LOOP) == contexts.end()) {
+      SyntaxError("'break' not allowed outside of a loop",
+        Source(s.token.line));
+    }
+  }
+
+  void visitContinueStatement(ContinueStatement& s) override {
+    if (std::find(contexts.begin(), contexts.end(), Context::LOOP) == contexts.end()) {
+      SyntaxError("'continue' not allowed outside of a loop",
+        Source(s.token.line));
+    }
+  }
+
   void visitWhileStatement(WhileStatement& s) override {
     Type* condition = get(s.condition);
 
@@ -84,7 +99,9 @@ struct : Visitor {
       TypeError("'" + condition->toString() + "' cannot be converted to type 'bool'",
         Source(s.condition.start.line));
     
+    contexts.push_back(Context::LOOP);
     visit(s.body);
+    contexts.pop_back();
   }
 
   void visitFunctionDeclaration(FunctionDeclaration& s) override {

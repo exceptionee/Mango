@@ -21,6 +21,8 @@ struct Return {
   
   Return(Value value) : value(value) {}
 };
+struct Break {};
+struct Continue {};
 
 struct : Visitor {
   std::shared_ptr<Environment> globals = std::make_shared<Environment>(nullptr);
@@ -101,9 +103,21 @@ struct : Visitor {
     throw Return(s.value? eval(*s.value) : Value{std::monostate{}});
   }
 
+  void visitBreakStatement(BreakStatement& s) override {
+    throw Break();
+  }
+
+  void visitContinueStatement(ContinueStatement& s) override {
+    throw Continue();
+  }
+
   void visitWhileStatement(WhileStatement& s) override {
     while (std::get<bool>(eval(s.condition).data)) {
-      visit(s.body);
+      try {
+        visit(s.body);
+      }
+      catch (Continue) {}
+      catch (Break) { break; }
     }
   }
 

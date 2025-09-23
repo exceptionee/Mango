@@ -206,6 +206,26 @@ struct ReturnStatement : public Statement {
   }
 };
 
+struct BreakStatement : public Statement {
+  Token token;
+
+  BreakStatement(Token token) : token(token) {}
+
+  void accept(Visitor& v) {
+    return v.visitBreakStatement(*this);
+  }
+};
+
+struct ContinueStatement : public Statement {
+  Token token;
+
+  ContinueStatement(Token token) : token(token) {}
+
+  void accept(Visitor& v) {
+    return v.visitContinueStatement(*this);
+  }
+};
+
 struct WhileStatement : public Statement {
   Expression& condition;
   Statement& body;

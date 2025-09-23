@@ -192,11 +192,21 @@ struct {
       consume(SEMI, "expected ';'");
       return new PrintStatement(*expr);
     }
-    else if (peek().type == RETURN) {
-      Token token = advance();
+    else if (match(RETURN)) {
+      const Token token = previous();
       Expression* value = peek().type == SEMI? nullptr : expression();
       consume(SEMI, "expect ';' after return value");
       return new ReturnStatement(token, value);
+    }
+    else if (match(BREAK)) {
+      const Token token = previous();
+      consume(SEMI, "expected ';' after 'break'");
+      return new BreakStatement(token);
+    }
+    else if (match(CONTINUE)) {
+      const Token token = previous();
+      consume(SEMI, "expected ';' after 'continue'");
+      return new ContinueStatement(token);
     }
     else if (match(WHILE)) {
       consume(LEFT_PAREN, "expected '(' after 'while'");
@@ -468,6 +478,8 @@ struct {
         case WHILE:
         case PRINT:
         case RETURN:
+        case BREAK:
+        case CONTINUE:
           return;
         default: advance();
       }

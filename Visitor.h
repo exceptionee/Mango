@@ -9,6 +9,8 @@ struct ExpressionStatement;
 struct IfStatement;
 struct PrintStatement;
 struct ReturnStatement;
+struct BreakStatement;
+struct ContinueStatement;
 struct WhileStatement;
 struct FunctionDeclaration;
 struct VarDeclaration;
@@ -33,6 +35,8 @@ struct Visitor {
   virtual void visitIfStatement(IfStatement& s) = 0;
   virtual void visitPrintStatement(PrintStatement& s) = 0;
   virtual void visitReturnStatement(ReturnStatement& s) = 0;
+  virtual void visitBreakStatement(BreakStatement& s) = 0;
+  virtual void visitContinueStatement(ContinueStatement& s) = 0;
   virtual void visitWhileStatement(WhileStatement& s) = 0;
   virtual void visitFunctionDeclaration(FunctionDeclaration& s) = 0;
   virtual void visitVarDeclaration(VarDeclaration& s) = 0;
