@@ -8,25 +8,16 @@
 #undef RETURN
 #define RETURN(type) do { returnType = type; return; } while (0)
 
-struct Symbol {
-  enum Declaration { FUNCTION, VAR, CONST };
-
-  Declaration declaration;
-  Type* type;
-
-  Symbol(Declaration declaration, Type* type) : declaration(declaration), type(type) {}
-};
-
 enum class Context {
   FUNCTION
 };
 
 struct : Visitor {
-  std::deque<std::unordered_map<std::string, Symbol>> stack = {{}};
+  std::deque<std::unordered_map<std::string, std::pair<Type*, bool>>> stack = {{}};
   std::deque<Context> contexts;
   Type* returnType;
 
-  Symbol* getSymbol(Token t) {
+  std::pair<Type*, bool>* getSymbol(Token t) {
     for (auto rit = stack.rbegin(); rit != stack.rend(); ++rit)
       for (auto& pair : *rit)
         if (pair.first == t.lexeme) return &pair.second;
@@ -106,10 +97,14 @@ struct : Visitor {
     for (Argument arg : s.args)
       args.push_back(arg.type);
 
-    stack.back().insert(std::make_pair(id, Symbol(Symbol::FUNCTION,
-      std::find(args.begin(), args.end(), ERROR_T) == args.end()?
-        new FunctionType(args, s.returnType) : ERROR_T
-    )));
+    stack.back().emplace(
+      id,
+      std::make_pair(
+        std::find(args.begin(), args.end(), ERROR_T) == args.end()?
+          new FunctionType(args, s.returnType) : ERROR_T,
+        false
+      )
+    );
 
     contexts.push_back(Context::FUNCTION);
     stack.push_back({});
@@ -119,7 +114,7 @@ struct : Visitor {
       if (stack.back().find(lexeme) != stack.back().end())
         TypeError("duplicate paramater '" + lexeme + "' not allowed", Source(arg.id.line));
 
-      stack.back().insert(std::make_pair(lexeme, Symbol(Symbol::VAR, arg.type)));
+      stack.back().insert(std::make_pair(lexeme, std::make_pair(arg.type, true)));
     }
 
     for (Statement* statement : s.body.statements)
@@ -142,7 +137,7 @@ struct : Visitor {
         Source(s.id.line));
     }
 
-    stack.back().insert(std::make_pair(id, Symbol(Symbol::VAR, type)));
+    stack.back().insert(std::make_pair(id, std::make_pair(type, true)));
   }
 
   void visitConstDeclaration(ConstDeclaration& s) override {
@@ -158,7 +153,7 @@ struct : Visitor {
         Source(s.id.line));
     }
 
-    stack.back().insert(std::make_pair(id, Symbol(Symbol::CONST, type)));
+    stack.back().insert(std::make_pair(id, std::make_pair(type, false)));
   }
 
   void visitLiteralExpression(LiteralExpression& e) override {
@@ -191,8 +186,8 @@ struct : Visitor {
   }
 
   void visitVarExpression(VarExpression& e) override {
-    Symbol* symbol = getSymbol(e.id);
-    RETURN(symbol? symbol->type : ERROR_T);
+    auto symbol = getSymbol(e.id);
+    RETURN(symbol? symbol->first : ERROR_T);
   }
 
   void visitCallExpression(CallExpression& e) override {
@@ -266,7 +261,7 @@ struct : Visitor {
     if (type == ERROR_T) RETURN(ERROR_T);
 
     if (VarExpression* expr = dynamic_cast<VarExpression*>(&e.expr)) {
-      if (getSymbol(expr->id)->declaration != Symbol::VAR) {
+      if (!getSymbol(expr->id)->second) {
         TypeError("cannot reassign '" + expr->id.lexeme + "'",
           Source(e.expr.start.line));
         RETURN(ERROR_T);
@@ -304,7 +299,7 @@ struct : Visitor {
       case INCREMENT:
       case DECREMENT:
         if (VarExpression* expr = dynamic_cast<VarExpression*>(&e.expr)) {
-          if (getSymbol(expr->id)->declaration != Symbol::VAR) {
+          if (!getSymbol(expr->id)->second) {
             TypeError("cannot reassign '" + expr->id.lexeme + "'",
               Source(e.expr.start.line));
             RETURN(ERROR_T);
@@ -402,16 +397,16 @@ struct : Visitor {
     Type* left;
 
     if (VarExpression* expr = dynamic_cast<VarExpression*>(&e.l_value)) {
-      Symbol* symbol = getSymbol(expr->id);
+      auto symbol = getSymbol(expr->id);
 
       if (!symbol) RETURN(ERROR_T);
-      else if (symbol->declaration != Symbol::VAR) {
+      else if (!symbol->second) {
         TypeError("cannot reassign '" + expr->id.lexeme + "'",
           Source(e.l_value.start.line));
         RETURN(ERROR_T);
       }
 
-      left = symbol->type;
+      left = symbol->first;
     }
     else if (!dynamic_cast<ArrayAccessExpression*>(&e.l_value)) {
       TypeError("cannot perform operation '" + e.op.lexeme + "' on an r-value",
