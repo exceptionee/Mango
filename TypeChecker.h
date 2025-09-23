@@ -17,8 +17,13 @@ struct Symbol {
   Symbol(Declaration declaration, Type* type) : declaration(declaration), type(type) {}
 };
 
+enum class Context {
+  FUNCTION
+};
+
 struct : Visitor {
   std::deque<std::unordered_map<std::string, Symbol>> stack = {{}};
+  std::deque<Context> contexts;
   Type* returnType;
 
   Symbol* getSymbol(Token t) {
@@ -74,6 +79,10 @@ struct : Visitor {
   }
 
   void visitReturnStatement(ReturnStatement& s) override {
+    if (std::find(contexts.begin(), contexts.end(), Context::FUNCTION) == contexts.end()) {
+      SyntaxError("'return' not allowed outside of a function",
+        Source(s.token.line));
+    }
     if (s.value) visit(*s.value);
   }
 
@@ -102,6 +111,7 @@ struct : Visitor {
         new FunctionType(args, s.returnType) : ERROR_T
     )));
 
+    contexts.push_back(Context::FUNCTION);
     stack.push_back({});
 
     for (Argument arg : s.args) {
@@ -115,6 +125,7 @@ struct : Visitor {
     for (Statement* statement : s.body.statements)
       visit(*statement);
 
+    contexts.pop_back();
     stack.pop_back();
   }
 

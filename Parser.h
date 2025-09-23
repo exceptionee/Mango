@@ -192,10 +192,11 @@ struct {
       consume(SEMI, "expected ';'");
       return new PrintStatement(*expr);
     }
-    else if (match(RETURN)) {
+    else if (peek().type == RETURN) {
+      Token token = advance();
       Expression* value = peek().type == SEMI? nullptr : expression();
       consume(SEMI, "expect ';' after return value");
-      return new ReturnStatement(value);
+      return new ReturnStatement(token, value);
     }
     else if (match(WHILE)) {
       consume(LEFT_PAREN, "expected '(' after 'while'");

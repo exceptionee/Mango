@@ -196,9 +196,10 @@ struct PrintStatement : public Statement {
 };
 
 struct ReturnStatement : public Statement {
+  Token token;
   Expression* value;
 
-  ReturnStatement(Expression* value) : value(value) {}
+  ReturnStatement(Token token, Expression* value) : token(token), value(value) {}
 
   void accept(Visitor& v) {
     return v.visitReturnStatement(*this);
