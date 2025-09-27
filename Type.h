@@ -129,7 +129,7 @@ struct ArrayType : Type {
 
   bool superset(Type* type) override {
     if (ArrayType* arrayType = dynamic_cast<ArrayType*>(type))
-      return elementsType->superset(arrayType->elementsType);
+      return elementsType->equals(arrayType->elementsType);
 
     return false;
   }
