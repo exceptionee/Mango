@@ -6,21 +6,31 @@
 #include "Type.h"
 
 #undef RETURN
-#define RETURN(type) do { returnType = type; return; } while (0)
+#define RETURN(type) do { inferredType = type; return; } while (0)
 
-enum class Context {
-  FUNCTION,
-  LOOP
+enum Flags {
+  IMMUTABLE = 1 << 0
+};
+
+struct Context {
+  enum Kind {
+    SCOPE,
+    FUNCTION,
+    LOOP
+  };
+
+  Kind kind;
+  std::unordered_map<std::string, std::pair<Type*, uint32_t>> symbols = {};
+  Type* returnType;
 };
 
 struct : Visitor {
-  std::deque<std::unordered_map<std::string, std::pair<Type*, bool>>> stack = {{}};
-  std::deque<Context> contexts;
-  Type* returnType;
+  std::deque<Context> stack = {{Context::Kind::SCOPE}};
+  Type* inferredType;
 
-  std::pair<Type*, bool>* getSymbol(Token t) {
+  std::pair<Type*, uint32_t>* getSymbol(Token t) {
     for (auto rit = stack.rbegin(); rit != stack.rend(); ++rit)
-      for (auto& pair : *rit)
+      for (auto& pair : rit->symbols)
         if (pair.first == t.lexeme) return &pair.second;
 
     ReferenceError("'" + t.lexeme + "' has not been declared",
@@ -28,9 +38,9 @@ struct : Visitor {
     return nullptr;
   }
 
-  Type* get(ASTNode& e) {
+  Type* infer(ASTNode& e) {
     visit(e);
-    return returnType;
+    return inferredType;
   }
 
   void visit(ASTNode& e) override {
@@ -43,7 +53,7 @@ struct : Visitor {
   }
 
   void visitBlockStatement(BlockStatement& s) override {
-    stack.push_back({});
+    stack.push_back({Context::Kind::SCOPE});
 
     for (Statement* statement : s.statements)
       visit(*statement);
@@ -56,7 +66,7 @@ struct : Visitor {
   }
 
   void visitIfStatement(IfStatement& s) override {
-    Type* condition = get(s.condition);
+    Type* condition = infer(s.condition);
 
     if (condition != ERROR_T && condition != BOOL_T)
       TypeError("'" + condition->toString() + "' cannot be converted to type 'bool'",
@@ -71,82 +81,97 @@ struct : Visitor {
   }
 
   void visitReturnStatement(ReturnStatement& s) override {
-    if (std::find(contexts.begin(), contexts.end(), Context::FUNCTION) == contexts.end()) {
+    auto context = std::find_if(stack.rbegin(), stack.rend(),
+      [](Context c) { return c.kind == Context::Kind::FUNCTION; });
+
+    if (context == stack.rend()) {
       SyntaxError("'return' not allowed outside of a function",
         Source(s.token.line));
     }
-    if (s.value) visit(*s.value);
+
+    if (!s.value) return;
+
+    Type* value = infer(*s.value);
+
+    if (value != ERROR_T && !context->returnType->superset(value)) {
+      TypeError("cannot return type '" + value->toString() + "' from function with return type '" + context->returnType->toString() + "'",
+        Source(s.token.line));
+    }
   }
 
   void visitBreakStatement(BreakStatement& s) override {
-    if (std::find(contexts.begin(), contexts.end(), Context::LOOP) == contexts.end()) {
+    auto context = std::find_if(stack.rbegin(), stack.rend(),
+      [](Context c) { return c.kind == Context::Kind::LOOP; });
+
+    if (context == stack.rend()) {
       SyntaxError("'break' not allowed outside of a loop",
         Source(s.token.line));
     }
   }
 
   void visitContinueStatement(ContinueStatement& s) override {
-    if (std::find(contexts.begin(), contexts.end(), Context::LOOP) == contexts.end()) {
+    auto context = std::find_if(stack.rbegin(), stack.rend(),
+      [](Context c) { return c.kind == Context::Kind::LOOP; });
+
+    if (context == stack.rend()) {
       SyntaxError("'continue' not allowed outside of a loop",
         Source(s.token.line));
     }
   }
 
   void visitWhileStatement(WhileStatement& s) override {
-    Type* condition = get(s.condition);
+    Type* condition = infer(s.condition);
 
     if (condition != ERROR_T && condition != BOOL_T)
       TypeError("'" + condition->toString() + "' cannot be converted to type 'bool'",
         Source(s.condition.start.line));
     
-    contexts.push_back(Context::LOOP);
+    stack.push_back({Context::Kind::LOOP});
     visit(s.body);
-    contexts.pop_back();
+    stack.pop_back();
   }
 
   void visitFunctionDeclaration(FunctionDeclaration& s) override {
     std::string id = s.id.lexeme;
     std::vector<Type*> args;
     
-    if (stack.back().find(id) != stack.back().end())
+    if (stack.back().symbols.find(id) != stack.back().symbols.end())
       TypeError("'" + id + "' has already been declared", Source(s.id.line));
 
     for (Argument arg : s.args)
       args.push_back(arg.type);
 
-    stack.back().emplace(
+    stack.back().symbols.emplace(
       id,
       std::make_pair(
         std::find(args.begin(), args.end(), ERROR_T) == args.end()?
           new FunctionType(args, s.returnType) : ERROR_T,
-        false
+        IMMUTABLE
       )
     );
 
-    contexts.push_back(Context::FUNCTION);
-    stack.push_back({});
+    stack.push_back({Context::Kind::FUNCTION, {}, s.returnType});
 
     for (Argument arg : s.args) {
       std::string lexeme = arg.id.lexeme;
-      if (stack.back().find(lexeme) != stack.back().end())
+      if (stack.back().symbols.find(lexeme) != stack.back().symbols.end())
         TypeError("duplicate paramater '" + lexeme + "' not allowed", Source(arg.id.line));
 
-      stack.back().insert(std::make_pair(lexeme, std::make_pair(arg.type, true)));
+      stack.back().symbols.insert(std::make_pair(lexeme, std::make_pair(arg.type, 0)));
     }
 
     for (Statement* statement : s.body.statements)
       visit(*statement);
 
-    contexts.pop_back();
     stack.pop_back();
   }
 
   void visitVarDeclaration(VarDeclaration& s) override {
     std::string id = s.id.lexeme;
-    Type* valueType = s.initializer? get(*s.initializer) : NULL_T;
+    Type* valueType = s.initializer? infer(*s.initializer) : NULL_T;
     Type* type = valueType == ERROR_T? ERROR_T : s.type? s.type : s.initializer? valueType : ANY_T;
 
-    if (stack.back().find(id) != stack.back().end())
+    if (stack.back().symbols.find(id) != stack.back().symbols.end())
       TypeError("'" + id + "' has already been declared", Source(s.id.line));
     else if (s.type && valueType != ERROR_T && !s.type->superset(valueType)) {
       type = ERROR_T;
@@ -154,15 +179,15 @@ struct : Visitor {
         Source(s.id.line));
     }
 
-    stack.back().insert(std::make_pair(id, std::make_pair(type, true)));
+    stack.back().symbols.insert(std::make_pair(id, std::make_pair(type, 0)));
   }
 
   void visitConstDeclaration(ConstDeclaration& s) override {
     std::string id = s.id.lexeme;
-    Type* valueType = get(s.initializer);
+    Type* valueType = infer(s.initializer);
     Type* type = valueType == ERROR_T? ERROR_T : s.type? s.type : valueType;
 
-    if (stack.back().find(id) != stack.back().end())
+    if (stack.back().symbols.find(id) != stack.back().symbols.end())
       TypeError("'" + id + "' has already been declared", Source(s.id.line));
     else if (s.type && valueType != ERROR_T && !s.type->superset(valueType)) {
       type = ERROR_T;
@@ -170,7 +195,7 @@ struct : Visitor {
         Source(s.id.line));
     }
 
-    stack.back().insert(std::make_pair(id, std::make_pair(type, false)));
+    stack.back().symbols.insert(std::make_pair(id, std::make_pair(type, IMMUTABLE)));
   }
 
   void visitLiteralExpression(LiteralExpression& e) override {
@@ -191,7 +216,7 @@ struct : Visitor {
     UnionType* elementsType = new UnionType({});
 
     for (Expression* element : e.elements) {
-      Type* type = get(*element);
+      Type* type = infer(*element);
 
       if (type == ERROR_T) RETURN(ERROR_T);
 
@@ -208,14 +233,14 @@ struct : Visitor {
   }
 
   void visitCallExpression(CallExpression& e) override {
-    Type* callee = get(e.callee);
+    Type* callee = infer(e.callee);
 
     if (callee == ERROR_T) RETURN(ERROR_T);
 
     std::vector<Type*> args;
 
     for (Expression* item : e.args) {
-      Type* arg = get(*item);
+      Type* arg = infer(*item);
 
       if (arg == ERROR_T) RETURN(ERROR_T);
 
@@ -239,8 +264,8 @@ struct : Visitor {
   }
 
   void visitArrayAccessExpression(ArrayAccessExpression& e) override {
-    Type* type = get(e.array);
-    Type* indexType = get(e.index);
+    Type* type = infer(e.array);
+    Type* indexType = infer(e.index);
 
     if (type == ERROR_T || indexType == ERROR_T) RETURN(ERROR_T);
 
@@ -260,7 +285,7 @@ struct : Visitor {
   }
 
   void visitCastExpression(CastExpression& e) override {
-    Type* type = get(e.expr);
+    Type* type = infer(e.expr);
 
     if (type == ERROR_T) RETURN(ERROR_T);
     else if (!type->superset(e.type)) {
@@ -273,12 +298,12 @@ struct : Visitor {
   }
 
   void visitPostfixExpression(PostfixExpression& e) override {
-    Type* type = get(e.expr);
+    Type* type = infer(e.expr);
 
     if (type == ERROR_T) RETURN(ERROR_T);
 
     if (VarExpression* expr = dynamic_cast<VarExpression*>(&e.expr)) {
-      if (!getSymbol(expr->id)->second) {
+      if ((getSymbol(expr->id)->second & IMMUTABLE) == IMMUTABLE) {
         TypeError("cannot reassign '" + expr->id.lexeme + "'",
           Source(e.expr.start.line));
         RETURN(ERROR_T);
@@ -299,7 +324,7 @@ struct : Visitor {
   }
 
   void visitUnaryExpression(UnaryExpression& e) override {
-    Type* type = get(e.expr);
+    Type* type = infer(e.expr);
 
     if (type == ERROR_T) RETURN(ERROR_T);
 
@@ -316,7 +341,7 @@ struct : Visitor {
       case INCREMENT:
       case DECREMENT:
         if (VarExpression* expr = dynamic_cast<VarExpression*>(&e.expr)) {
-          if (!getSymbol(expr->id)->second) {
+          if ((getSymbol(expr->id)->second & IMMUTABLE) == IMMUTABLE) {
             TypeError("cannot reassign '" + expr->id.lexeme + "'",
               Source(e.expr.start.line));
             RETURN(ERROR_T);
@@ -345,8 +370,8 @@ struct : Visitor {
   }
 
   void visitBinaryExpression(BinaryExpression& e) override {
-    Type* left = get(e.left);
-    Type* right = get(e.right);
+    Type* left = infer(e.left);
+    Type* right = infer(e.right);
 
     if (left == ERROR_T || right == ERROR_T) RETURN(ERROR_T);
 
@@ -394,9 +419,9 @@ struct : Visitor {
   }
 
   void visitTernaryExpression(TernaryExpression& e) override {
-    Type* conditionType = get(e.condition);
-    Type* valueType = get(e.value);
-    Type* defaultType = get(e._default);
+    Type* conditionType = infer(e.condition);
+    Type* valueType = infer(e.value);
+    Type* defaultType = infer(e._default);
 
     if (conditionType == ERROR_T || valueType == ERROR_T || defaultType == ERROR_T) RETURN(ERROR_T);
 
@@ -417,7 +442,7 @@ struct : Visitor {
       auto symbol = getSymbol(expr->id);
 
       if (!symbol) RETURN(ERROR_T);
-      else if (!symbol->second) {
+      else if ((symbol->second & IMMUTABLE) == IMMUTABLE) {
         TypeError("cannot reassign '" + expr->id.lexeme + "'",
           Source(e.l_value.start.line));
         RETURN(ERROR_T);
@@ -430,9 +455,9 @@ struct : Visitor {
         Source(e.l_value.start.line));
       RETURN(ERROR_T);
     }
-    else left = get(e.l_value);
+    else left = infer(e.l_value);
 
-    Type* right = get(e.value);
+    Type* right = infer(e.value);
 
     if (left == ERROR_T || right == ERROR_T) RETURN(ERROR_T);
 
