@@ -1,7 +1,6 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <chrono>
 #include "argparse.hpp"
 #include "ASTNode.h"
 #include "Error.h"
