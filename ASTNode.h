@@ -185,16 +185,6 @@ struct IfStatement : public Statement {
   }
 };
 
-struct PrintStatement : public Statement {
-  Expression& expr;
-
-  PrintStatement(Expression& expr) : expr(expr) {}
-
-  void accept(Visitor& v) override {
-    v.visitPrintStatement(*this);
-  }
-};
-
 struct ReturnStatement : public Statement {
   Token token;
   Expression* value;

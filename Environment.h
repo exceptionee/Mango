@@ -9,11 +9,11 @@ struct Environment {
 
   Environment(std::shared_ptr<Environment> parent) : parent(parent) {}
 
-  void set(std::string key, Value value) {
+  void set(const std::string& key, Value value) {
     map[key] = value;
   }
 
-  Value& get(std::string key) {
+  Value& get(const std::string& key) {
     auto result = map.find(key);
     return result != map.end()? result->second : parent->get(key);
   }

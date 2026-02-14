@@ -27,7 +27,6 @@ struct {
     {"for", FOR},
     {"if", IF},
     {"else", ELSE},
-    {"print", PRINT},
     {"return", RETURN},
     {"break", BREAK},
     {"continue", CONTINUE},

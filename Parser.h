@@ -187,11 +187,6 @@ struct {
 
       return new IfStatement(*condition, *thenBranch, elseBranch);
     }
-    else if (match(PRINT)) {
-      Expression* expr = expression();
-      consume(SEMI, "expected ';'");
-      return new PrintStatement(*expr);
-    }
     else if (match(RETURN)) {
       const Token token = previous();
       Expression* value = peek().type == SEMI? nullptr : expression();
@@ -472,7 +467,6 @@ struct {
         case FOR:
         case IF:
         case WHILE:
-        case PRINT:
         case RETURN:
         case BREAK:
         case CONTINUE:

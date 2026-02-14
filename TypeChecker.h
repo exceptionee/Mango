@@ -76,10 +76,6 @@ struct : Visitor {
     if (s.elseBranch) visit(*s.elseBranch);
   }
 
-  void visitPrintStatement(PrintStatement& s) override {
-    visit(s.expr);
-  }
-
   void visitReturnStatement(ReturnStatement& s) override {
     auto context = std::find_if(stack.rbegin(), stack.rend(),
       [](Context c) { return c.kind == Context::Kind::FUNCTION; });
@@ -254,10 +250,18 @@ struct : Visitor {
         Source(e.callee.start.line));
       RETURN(ERROR_T);
     }
-    else if (!function->equals(new FunctionType(args, function->returnType))) {
-      TypeError("argument mismatch",
+    else if (function->args.size() != args.size()) {
+      TypeError("expected " + std::to_string(function->args.size()) + " arguments but got " + std::to_string(args.size()),
         Source(e.callee.start.line));
       RETURN(ERROR_T);
+    }
+
+    for (int i = 0; i < args.size(); ++i) {
+      if (!function->args[i]->superset(args[i])) {
+        TypeError("cannot assign argument of type '" + args[i]->toString() + "' to parameter of type '" + function->args[i]->toString() + "'",
+          Source(e.args[i]->start.line));
+        RETURN(ERROR_T);
+      }
     }
 
     RETURN(function->returnType);

@@ -10,10 +10,11 @@
 #include "Type.h"
 #include "TypeChecker.h"
 #include "Value.h"
+#include "Builtins.h"
 
 std::string Source::file = "REPL";
 
-Value interpret(std::string input) {
+Value interpret(const std::string& input) {
   Program* AST = Parser.parse(Lexer.tokenize(input));
   TypeChecker.visitProgram(*AST);
 
@@ -36,6 +37,8 @@ int main(int argc, char* argv[]) {
 
   std::ios::sync_with_stdio(false);
   std::cout << std::setprecision(17);
+  registerBuiltins();
+  interpret(declarations);
 
   std::string fileName = program.get<std::string>("file");
 

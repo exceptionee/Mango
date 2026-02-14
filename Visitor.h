@@ -7,7 +7,6 @@ struct Program;
 struct BlockStatement;
 struct ExpressionStatement;
 struct IfStatement;
-struct PrintStatement;
 struct ReturnStatement;
 struct BreakStatement;
 struct ContinueStatement;
@@ -33,7 +32,6 @@ struct Visitor {
   virtual void visitBlockStatement(BlockStatement& s) = 0;
   virtual void visitExpressionStatement(ExpressionStatement& s) = 0;
   virtual void visitIfStatement(IfStatement& s) = 0;
-  virtual void visitPrintStatement(PrintStatement& s) = 0;
   virtual void visitReturnStatement(ReturnStatement& s) = 0;
   virtual void visitBreakStatement(BreakStatement& s) = 0;
   virtual void visitContinueStatement(ContinueStatement& s) = 0;

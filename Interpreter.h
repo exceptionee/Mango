@@ -24,9 +24,10 @@ struct Return {
 struct Break {};
 struct Continue {};
 
+std::unordered_map<std::string, std::function<Value(std::vector<Value>&)>> builtins;
+
 struct : Visitor {
-  std::shared_ptr<Environment> globals = std::make_shared<Environment>(nullptr);
-  std::shared_ptr<Environment> current = globals;
+  std::shared_ptr<Environment> current = std::make_shared<Environment>(nullptr);
   Value returnValue;
 
   Value& getLValue(Expression& e) {
@@ -34,18 +35,18 @@ struct : Visitor {
       return current->get(varExpr->id.lexeme);
 
     ArrayAccessExpression* arrayAccess = dynamic_cast<ArrayAccessExpression*>(&e);
-    std::vector<Value>* elements = &std::static_pointer_cast<Array>
+    std::vector<Value>& elements = std::static_pointer_cast<Array>
       (std::get<std::shared_ptr<Object>>(eval(arrayAccess->array).data))->elements;
     const long long index = std::get<long long>(eval(arrayAccess->index).data);
 
-    if (index < 0 || index >= elements->size()) {
+    if (index < 0 || index >= elements.size()) {
       throw RuntimeError(
-        "index " + std::to_string(index) + " out of bounds for length " + std::to_string(elements->size()),
+        "index " + std::to_string(index) + " out of bounds for length " + std::to_string(elements.size()),
         Source(arrayAccess->index.start.line)
       );
     }
 
-    return (*elements)[index];
+    return elements[index];
   }
 
   Value eval(ASTNode& e) {
@@ -95,10 +96,6 @@ struct : Visitor {
       visit(*s.elseBranch);
   }
 
-  void visitPrintStatement(PrintStatement& s) override {
-    std::cout << eval(s.expr).toString() << std::endl;
-  }
-
   void visitReturnStatement(ReturnStatement& s) override {
     throw Return(s.value? eval(*s.value) : Value{std::monostate{}});
   }
@@ -123,7 +120,12 @@ struct : Visitor {
 
   void visitFunctionDeclaration(FunctionDeclaration& s) override {
     current = std::make_shared<Environment>(current);
-    current->set(s.id.lexeme, Value{std::make_shared<Function>(s, current)});
+    current->set(
+      s.id.lexeme,
+      builtins.find(s.id.lexeme) != builtins.end()
+        ? Value{std::make_shared<Function>(s, builtins[s.id.lexeme])}
+        : Value{std::make_shared<Function>(s, current)}
+    );
   }
 
   void visitVarDeclaration(VarDeclaration& s) override {
@@ -182,7 +184,23 @@ struct : Visitor {
 
   void visitCallExpression(CallExpression& e) override {
     Value callee = eval(e.callee);
-    std::shared_ptr<Function> function = std::static_pointer_cast<Function>(std::get<std::shared_ptr<Object>>(callee.data));
+    std::shared_ptr<Function> function =
+      std::static_pointer_cast<Function>(std::get<std::shared_ptr<Object>>(callee.data));
+
+    if (function->nativeImpl) {
+      std::vector<Value> args;
+      args.reserve(e.args.size());
+
+      for (Expression* arg : e.args)
+        args.push_back(eval(*arg));
+
+      try {
+        RETURN(function->nativeImpl(args));
+      }
+      catch(const std::string error) {
+        throw RuntimeError(error, Source(e.start.line));
+      }
+    }
 
     std::shared_ptr<Environment> env = std::make_shared<Environment>(function->closure);
 
@@ -206,8 +224,8 @@ struct : Visitor {
   }
 
   void visitArrayAccessExpression(ArrayAccessExpression& e) override {
-    const std::vector<Value> elements = std::static_pointer_cast<Array>
-      (std::get<std::shared_ptr<Object>>(eval(e.array).data))->elements;
+    const std::vector<Value>& elements =
+      std::static_pointer_cast<Array>(std::get<std::shared_ptr<Object>>(eval(e.array).data))->elements;
     const long long index = std::get<long long>(eval(e.index).data);
     
     if (index >= 0 && index < elements.size()) RETURN(elements[index]);
@@ -282,8 +300,10 @@ struct : Visitor {
       case LESS_EQUALS: RETURN(MATH_OP(left, <=, right));
       case PLUS:
         if (std::holds_alternative<std::shared_ptr<Object>>(left.data)) {
-          const std::shared_ptr<String> a = std::static_pointer_cast<String>(std::get<std::shared_ptr<Object>>(left.data));
-          const std::shared_ptr<String> b = std::static_pointer_cast<String>(std::get<std::shared_ptr<Object>>(right.data));
+          const std::shared_ptr<String> a =
+            std::static_pointer_cast<String>(std::get<std::shared_ptr<Object>>(left.data));
+          const std::shared_ptr<String> b =
+            std::static_pointer_cast<String>(std::get<std::shared_ptr<Object>>(right.data));
           
           RETURN(Value{std::make_shared<String>(a->chars + b->chars)});
         }
@@ -329,8 +349,10 @@ struct : Visitor {
       case ASSIGN: RETURN(l_value = value);
       case PLUS_EQUALS: {
         if (std::holds_alternative<std::shared_ptr<Object>>(value.data)) {
-          const std::shared_ptr<String> a = std::static_pointer_cast<String>(std::get<std::shared_ptr<Object>>(l_value.data));
-          const std::shared_ptr<String> b = std::static_pointer_cast<String>(std::get<std::shared_ptr<Object>>(value.data));
+          const std::shared_ptr<String> a =
+            std::static_pointer_cast<String>(std::get<std::shared_ptr<Object>>(l_value.data));
+          const std::shared_ptr<String> b =
+            std::static_pointer_cast<String>(std::get<std::shared_ptr<Object>>(value.data));
             
           RETURN(l_value = Value{std::make_shared<String>(a->chars + b->chars)});
         }

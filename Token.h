@@ -58,7 +58,6 @@ enum TokenType {
   FOR,
   IF,
   ELSE,
-  PRINT,
   RETURN,
   BREAK,
   CONTINUE,

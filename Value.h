@@ -59,9 +59,13 @@ struct Value {
 struct Function : Object {
   FunctionDeclaration& declaration;
   std::shared_ptr<Environment> closure;
+  std::function<Value(std::vector<Value>&)> nativeImpl;
 
   Function(FunctionDeclaration& declaration, std::shared_ptr<Environment> closure)
     : declaration(declaration), closure(closure) {}
+
+  Function(FunctionDeclaration& declaration, std::function<Value(std::vector<Value>&)> nativeImpl)
+    : declaration(declaration), nativeImpl(nativeImpl) {}
 
   bool equals(Object& o) override {
     return this == &o;
