@@ -118,14 +118,12 @@ struct Array : Object {
   Type* typeOf() override {
     if (elements.empty()) return new ArrayType(NULL_T);
 
-    UnionType* elementsType = new UnionType({});
+    std::vector<Type*> types{};
 
     for (Value element : elements)
-      elementsType->add(element.typeOf());
+      types.push_back(element.typeOf());
 
-    if (elementsType->types.size() == 1)
-      return new ArrayType(elementsType->types[0]);
-    return new ArrayType(elementsType);
+    return new ArrayType(mergeTypes(types));
   }
   
   std::string toString() override {

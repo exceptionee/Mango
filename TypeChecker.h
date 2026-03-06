@@ -209,18 +209,17 @@ struct : Visitor {
   void visitArrayLiteralExpression(ArrayLiteralExpression& e) override {
     if (e.elements.empty()) RETURN(new ArrayType(NULL_T));
 
-    UnionType* elementsType = new UnionType({});
+    std::vector<Type*> types{};
 
     for (Expression* element : e.elements) {
       Type* type = infer(*element);
 
       if (type == ERROR_T) RETURN(ERROR_T);
 
-      elementsType->add(type);
+      types.push_back(type);
     }
 
-    if (elementsType->types.size() == 1) RETURN(new ArrayType(elementsType->types[0]));
-    RETURN(new ArrayType(elementsType));
+    RETURN(new ArrayType(mergeTypes(types)));
   }
 
   void visitVarExpression(VarExpression& e) override {
@@ -380,9 +379,22 @@ struct : Visitor {
     if (left == ERROR_T || right == ERROR_T) RETURN(ERROR_T);
 
     switch (e.op.type) {
-      // TODO: make `new UnionType({ left, right })` exclude NULL_T
-      case COALESCENCE: RETURN(!left->superset(NULL_T)? left :
-        left == NULL_T? right : new UnionType({ left, right }));
+      case COALESCENCE: {
+        if (!left->superset(NULL_T)) RETURN(left);
+        else if (left == NULL_T) RETURN(right);
+
+        std::vector<Type*> types;
+
+        if (UnionType* u = dynamic_cast<UnionType*>(left)) {
+          for (Type* t : u->types)
+            if (t != NULL_T)
+              types.push_back(t);
+        }
+        else types.push_back(left);
+
+        types.push_back(right);
+        RETURN(mergeTypes(types));
+      }
       case AND:
       case OR:
         if (left == BOOL_T && right == BOOL_T) RETURN(BOOL_T);
@@ -435,8 +447,7 @@ struct : Visitor {
       RETURN(ERROR_T);
     }
 
-    RETURN(valueType == defaultType?
-      valueType : new UnionType({ valueType, defaultType }));
+    RETURN(mergeTypes({ valueType, defaultType }));
   }
 
   void visitAssignmentExpression(AssignmentExpression& e) override {

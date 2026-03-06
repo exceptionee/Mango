@@ -30,13 +30,12 @@ struct {
     Type* t = arrayType();
 
     if (match(UNION)) {
-      auto u = new UnionType({ t, arrayType() });
+      std::vector<Type*> types = { t, arrayType() };
 
       while (match(UNION))
-        u->add(arrayType());
+        types.push_back(arrayType());
 
-      if (u->types.size() == 1) return u->types[0];
-      return u;
+      return mergeTypes(types);
     }
 
     return t;

@@ -64,21 +64,7 @@ struct FunctionType : Type {
 struct UnionType : Type {
   std::vector<Type*> types;
 
-  UnionType(std::vector<Type*> types) {
-    for (Type* t : types)
-      add(t);
-  }
-
-  void add(Type* type) {
-    if (UnionType* unionType = dynamic_cast<UnionType*>(type)) {
-      for (Type* i : unionType->types)
-        add(i);
-      return;
-    }
-
-    if (!superset(type))
-      types.push_back(type);
-  }
+  UnionType(std::vector<Type*> types) : types(types) {}
 
   bool equals(Type* type) override {
     if (UnionType* unionType = dynamic_cast<UnionType*>(type))
@@ -159,6 +145,33 @@ struct Primitive : Type {
     return name;
   }
 };
+
+inline void addType(std::vector<Type*>& types, Type* type) {
+  if (UnionType* u = dynamic_cast<UnionType*>(type)) {
+    for (auto t : u->types)
+      addType(types, t);
+
+    return;
+  }
+
+  for (auto it = types.begin(); it != types.end();) {
+    if ((*it)->superset(type)) return;
+    else if (type->superset(*it)) it = types.erase(it);
+    else ++it;
+  }
+
+  types.push_back(type);
+}
+
+inline Type* mergeTypes(const std::vector<Type*>& types) {
+  std::vector<Type*> collapsed = {};
+
+  for (auto type : types)
+    addType(collapsed, type);
+
+  if (collapsed.size() == 1) return collapsed[0];
+  return new UnionType(collapsed);
+}
 
 Type* ERROR_T = nullptr;
 Type* ANY_T = &Any;
