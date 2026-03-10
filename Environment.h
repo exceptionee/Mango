@@ -1,13 +1,26 @@
 #include <unordered_map>
 #include <string>
+#include <gc/gc_allocator.h>
 
 struct Value;
 
 struct Environment {
-  std::shared_ptr<Environment> parent;
-  std::unordered_map<std::string, Value> map;
+  Environment* parent;
+  std::unordered_map<
+    std::string,
+    Value,
+    std::hash<std::string>,
+    std::equal_to<std::string>,
+    gc_allocator<std::pair<std::string, Value>>
+  > map;
 
-  Environment(std::shared_ptr<Environment> parent) : parent(parent) {}
+  void* operator new(size_t size) {
+    void* p = GC_malloc(size);
+    if (!p) throw std::bad_alloc();
+    return p;
+  }
+
+  Environment(Environment* parent) : parent(parent) {}
 
   void set(const std::string& key, Value value) {
     map[key] = value;

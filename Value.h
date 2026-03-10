@@ -4,20 +4,25 @@
 #include <string>
 #include <variant>
 #include <vector>
+#include <gc.h>
 #include "ASTNode.h"
 #include "Type.h"
 
 struct Environment;
 
 struct Object {
-  virtual ~Object() = default;
+  void* operator new(size_t size) {
+    void* p = GC_malloc(size);
+    if (!p) throw std::bad_alloc();
+    return p;
+  }
   virtual bool equals(Object& o) = 0;
   virtual Type* typeOf() = 0;
   virtual std::string toString() = 0;
 };
 
 struct Value {
-  std::variant<long long, double, char, bool, std::shared_ptr<Object>, std::monostate> data;
+  std::variant<long long, double, char, bool, Object*, std::monostate> data;
 
   bool operator==(const Value& v) const {
     if (data.index() != v.data.index()) return false;
@@ -27,8 +32,7 @@ struct Value {
       case 1: return std::get<double>(data) == std::get<double>(v.data);
       case 2: return std::get<char>(data) == std::get<char>(v.data);
       case 3: return std::get<bool>(data) == std::get<bool>(v.data);
-      case 4: return std::get<std::shared_ptr<Object>>(data)
-        ->equals(*std::get<std::shared_ptr<Object>>(v.data));
+      case 4: return std::get<Object*>(data)->equals(*std::get<Object*>(v.data));
       default: return true; // when both values are null
     }
   }
@@ -39,7 +43,7 @@ struct Value {
       case 1: return FLOAT_T;
       case 2: return CHAR_T;
       case 3: return BOOL_T;
-      case 4: return std::get<std::shared_ptr<Object>>(data)->typeOf();
+      case 4: return std::get<Object*>(data)->typeOf();
       default: return NULL_T;
     }
   }
@@ -50,7 +54,7 @@ struct Value {
       case 1: return "\e[33m" + std::to_string(std::get<double>(data)) + "\e[0m";
       case 2: return "\e[33m" + std::string(1, std::get<char>(data)) + "\e[0m";
       case 3: return std::get<bool>(data)? "\e[31mtrue\e[0m" : "\e[31mfalse\e[0m";
-      case 4: return std::get<std::shared_ptr<Object>>(data)->toString();
+      case 4: return std::get<Object*>(data)->toString();
       default: return "\e[38;5;250mnull\e[0m";
     }
   }
@@ -58,13 +62,13 @@ struct Value {
 
 struct Function : Object {
   FunctionDeclaration& declaration;
-  std::shared_ptr<Environment> closure;
-  std::function<Value(std::vector<Value>&)> nativeImpl;
+  Environment* closure;
+  std::function<Value(std::vector<Value, gc_allocator<Value>>&)> nativeImpl;
 
-  Function(FunctionDeclaration& declaration, std::shared_ptr<Environment> closure)
+  Function(FunctionDeclaration& declaration, Environment* closure)
     : declaration(declaration), closure(closure) {}
 
-  Function(FunctionDeclaration& declaration, std::function<Value(std::vector<Value>&)> nativeImpl)
+  Function(FunctionDeclaration& declaration, std::function<Value(std::vector<Value, gc_allocator<Value>>&)> nativeImpl)
     : declaration(declaration), nativeImpl(nativeImpl) {}
 
   bool equals(Object& o) override {
@@ -105,22 +109,17 @@ struct String : Object {
   }
 };
 
-struct Array : Object {
-  std::vector<Value> elements;
-
-  Array(std::vector<Value> const& elements)
-    : elements(elements) {}
-
+struct Array : Object, std::vector<Value, gc_allocator<Value>> {
   bool equals(Object& o) override {
     return this == &o;
   }
 
   Type* typeOf() override {
-    if (elements.empty()) return new ArrayType(NULL_T);
+    if (this->empty()) return new ArrayType(NULL_T);
 
     std::vector<Type*> types{};
 
-    for (Value element : elements)
+    for (Value element : *this)
       types.push_back(element.typeOf());
 
     return new ArrayType(mergeTypes(types));
@@ -129,9 +128,9 @@ struct Array : Object {
   std::string toString() override {
     std::string result = "[";
 
-    for (int i = 0; i < elements.size(); ++i) {
-      result += elements[i].toString();
-      if (i != elements.size() - 1) result += ", ";
+    for (int i = 0; i < this->size(); ++i) {
+      result += (*this)[i].toString();
+      if (i != this->size() - 1) result += ", ";
     }
 
     return (result + "]");

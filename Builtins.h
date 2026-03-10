@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <chrono>
+#include <gc/gc_allocator.h>
 #include "Value.h"
 #include "Interpreter.h"
 
@@ -24,76 +25,73 @@ std::string declarations = R"(
 )";
 
 void registerBuiltins() {
-  builtins["print"] = [](std::vector<Value>& args) {
+  builtins["print"] = [](std::vector<Value, gc_allocator<Value>>& args) {
     std::cout << args[0].toString();
     return Value{std::monostate{}};
   };
   
-  builtins["println"] = [](std::vector<Value>& args) {
+  builtins["println"] = [](std::vector<Value, gc_allocator<Value>>& args) {
     std::cout << args[0].toString() << std::endl;
     return Value{std::monostate{}};
   };
 
-  builtins["input"] = [](std::vector<Value>& args) {
+  builtins["input"] = [](std::vector<Value, gc_allocator<Value>>& args) {
     std::string input;
     std::getline(std::cin, input);
-    return Value{std::make_shared<String>(input)};
+    return Value{new String(input)};
   };
 
-  builtins["clock"] = [](std::vector<Value>& args) {
+  builtins["clock"] = [](std::vector<Value, gc_allocator<Value>>& args) {
     auto now = std::chrono::system_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     return Value{ms};
   };
 
-  builtins["sizeof"] = [](std::vector<Value>& args) {
+  builtins["sizeof"] = [](std::vector<Value, gc_allocator<Value>>& args) {
     if (args[0].data.index() == 4) {
-      std::shared_ptr<Object> object = std::get<std::shared_ptr<Object>>(args[0].data);
+      Object* object = std::get<Object*>(args[0].data);
       
-      if (String* string = dynamic_cast<String*>(object.get()))
+      if (String* string = dynamic_cast<String*>(object))
         return Value{(long long) string->chars.size()};
-      else if (Array* array = dynamic_cast<Array*>(object.get()))
-        return Value{(long long) array->elements.size()};
+      else if (Array* array = dynamic_cast<Array*>(object))
+        return Value{(long long) array->size()};
     }
     return Value{static_cast<long long>(sizeof(args[0].data))};
   };
   
-  builtins["read"] = [](std::vector<Value>& args) {
-    std::string filename =
-      std::static_pointer_cast<String>(std::get<std::shared_ptr<Object>>(args[0].data))->chars;
+  builtins["read"] = [](std::vector<Value, gc_allocator<Value>>& args) {
+    std::string filename = ((String*) std::get<Object*>(args[0].data))->chars;
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
 
     if (!file.is_open())
-      throw "failed to open file '" + filename + "'";
+      throw std::runtime_error("failed to open file '" + filename + "'");
 
     std::streamsize size = file.tellg();
     file.seekg(0, std::ios::beg);
 
-    std::vector<Value> content;
-    content.reserve(size);
+    Array* content = new Array();
+    content->reserve(size);
 
     char c;
     while (file.get(c)) {
-      content.push_back(Value{c});
+      content->push_back(Value{c});
     }
 
     file.close();
 
-    return Value{std::make_shared<Array>(content)};
+    return Value{content};
   };
 
-  builtins["write"] = [](std::vector<Value>& args) {
-    std::string filename =
-      std::static_pointer_cast<String>(std::get<std::shared_ptr<Object>>(args[0].data))->chars;
-    std::vector<Value>& content =
-      std::static_pointer_cast<Array>(std::get<std::shared_ptr<Object>>(args[1].data))->elements;
+  builtins["write"] = [](std::vector<Value, gc_allocator<Value>>& args) {
+    std::string filename = ((String*) std::get<Object*>(args[0].data))->chars;
+    auto content = (Array*) std::get<Object*>(args[1].data);
 
     std::ofstream file(filename, std::ios::binary);
 
     if (!file.is_open())
-      throw "failed to open file '" + filename + "'";
+      throw std::runtime_error("failed to open file '" + filename + "'");
 
-    for (Value& c : content)
+    for (Value& c : *content)
       file.put(std::get<char>(c.data));
 
     file.close();
@@ -101,30 +99,28 @@ void registerBuiltins() {
     return Value{std::monostate{}};
   };
 
-  builtins["typeof"] = [](std::vector<Value>& args) {
-    return Value{std::make_shared<String>(args[0].typeOf()->toString())};
+  builtins["typeof"] = [](std::vector<Value, gc_allocator<Value>>& args) {
+    return Value{new String(args[0].typeOf()->toString())};
   };
 
-  builtins["splice"] = [](std::vector<Value>& args) {
+  builtins["splice"] = [](std::vector<Value, gc_allocator<Value>>& args) {
     if (args[0].data.index() != 4 || args[3].data.index() != 4)
-      throw "first and fourth arguments to splice must be arrays";
+      throw std::runtime_error("first and fourth arguments to splice must be arrays");
 
-    Array* array =
-      dynamic_cast<Array*>(std::get<std::shared_ptr<Object>>(args[0].data).get());
-    Array* insert =
-      dynamic_cast<Array*>(std::get<std::shared_ptr<Object>>(args[3].data).get());
+    Array* array = dynamic_cast<Array*>(std::get<Object*>(args[0].data));
+    Array* insert = dynamic_cast<Array*>(std::get<Object*>(args[3].data));
 
     if (!array || !insert)
-      throw "first and fourth arguments to splice must be arrays";
+      throw std::runtime_error("first and fourth arguments to splice must be arrays");
 
     int start = std::get<long long>(args[1].data);
     int deleteCount = std::get<long long>(args[2].data);
 
-    start = std::clamp(start, 0, (int) array->elements.size());
-    deleteCount = std::clamp(deleteCount, 0, (int) array->elements.size() - start);
+    start = std::clamp(start, 0, (int) array->size());
+    deleteCount = std::clamp(deleteCount, 0, (int) array->size() - start);
 
-    array->elements.erase(array->elements.begin() + start, array->elements.begin() + start + deleteCount);
-    array->elements.insert(array->elements.begin() + start, insert->elements.begin(), insert->elements.end());
+    array->erase(array->begin() + start, array->begin() + start + deleteCount);
+    array->insert(array->begin() + start, insert->begin(), insert->end());
 
     return args[0];
   };
