@@ -87,6 +87,7 @@ struct : Visitor {
       SyntaxError(
         "'return' not allowed outside of a function", Source(s.token.line)
       );
+      return;
     }
 
     if (!s.value) return;
