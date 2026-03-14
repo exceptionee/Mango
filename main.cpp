@@ -1,8 +1,5 @@
-#include <fstream>
-#include <iostream>
-#include <string>
-#include "argparse.hpp"
 #include "ASTNode.h"
+#include "Builtins.h"
 #include "Error.h"
 #include "Interpreter.h"
 #include "Lexer.h"
@@ -10,7 +7,10 @@
 #include "Type.h"
 #include "TypeChecker.h"
 #include "Value.h"
-#include "Builtins.h"
+#include "argparse.hpp"
+#include <fstream>
+#include <iostream>
+#include <string>
 
 std::string Source::file = "REPL";
 
@@ -18,15 +18,13 @@ Value interpret(const std::string& input) {
   Program* AST = Parser.parse(Lexer.tokenize(input));
   TypeChecker.visitProgram(*AST);
 
-  return !hadError? Interpreter.eval(*AST) : Value{};
+  return !hadError ? Interpreter.eval(*AST) : Value{};
 }
 
 int main(int argc, char* argv[]) {
   argparse::ArgumentParser program("mango", "v0.1.0a");
 
-  program.add_argument("file")
-    .default_value("")
-    .help("the file to interpret");
+  program.add_argument("file").default_value("").help("the file to interpret");
 
   try {
     program.parse_args(argc, argv);
@@ -50,7 +48,8 @@ int main(int argc, char* argv[]) {
       std::getline(std::cin, input);
 
       if (std::cin.eof()) return 0;
-      else if (input.empty()) continue;
+      else if (input.empty())
+        continue;
 
       auto fallback = TypeChecker.stack;
       Value result = interpret(input);
@@ -71,6 +70,8 @@ int main(int argc, char* argv[]) {
   }
 
   Source::file = fileName;
-  std::string str{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
+  std::string str{
+    std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()
+  };
   interpret(str);
 }

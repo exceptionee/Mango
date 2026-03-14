@@ -1,31 +1,41 @@
 #pragma once
 
+#include "ASTNode.h"
+#include "Environment.h"
+#include "Error.h"
+#include "Value.h"
+#include <gc/gc_allocator.h>
 #include <charconv>
 #include <iostream>
 #include <math.h>
 #include <system_error>
-#include <gc/gc_allocator.h>
-#include "ASTNode.h"
-#include "Error.h"
-#include "Value.h"
-#include "Environment.h"
 
 #undef RETURN
-#define RETURN(value) do { returnValue = value; return; } while (0)
+#define RETURN(value) \
+  do { \
+    returnValue = value; \
+    return; \
+  } while (0)
 
-#define MATH_OP(left, op, right) std::holds_alternative<long long>(left.data)? \
-  Value{std::get<long long>(left.data) op std::get<long long>(right.data)} : \
-  Value{std::get<double>(left.data) op std::get<double>(right.data)}
+#define MATH_OP(left, op, right) \
+  std::holds_alternative<long long>(left.data) \
+    ? Value{std::get<long long>(left.data) op std::get<long long>(right.data)} \
+    : Value { \
+    std::get<double>(left.data) op std::get<double>(right.data) \
+  }
 
 struct Return {
   Value value;
-  
+
   Return(Value value) : value(value) {}
 };
 struct Break {};
 struct Continue {};
 
-std::unordered_map<std::string, std::function<Value(std::vector<Value, gc_allocator<Value>>&)>> builtins;
+std::unordered_map<
+  std::string,
+  std::function<Value(std::vector<Value, gc_allocator<Value>>&)>>
+  builtins;
 
 struct : Visitor {
   Environment* current = nullptr;
@@ -35,13 +45,15 @@ struct : Visitor {
     if (VarExpression* varExpr = dynamic_cast<VarExpression*>(&e))
       return current->get(varExpr->id.lexeme);
 
-    ArrayAccessExpression* arrayAccess = dynamic_cast<ArrayAccessExpression*>(&e);
-    auto array = (Array*) std::get<Object*>(eval(arrayAccess->array).data);
+    ArrayAccessExpression* arrayAccess =
+      dynamic_cast<ArrayAccessExpression*>(&e);
+    auto array = (Array*)std::get<Object*>(eval(arrayAccess->array).data);
     const long long index = std::get<long long>(eval(arrayAccess->index).data);
 
     if (index < 0 || index >= array->size()) {
       throw RuntimeError(
-        "index " + std::to_string(index) + " out of bounds for length " + std::to_string(array->size()),
+        "index " + std::to_string(index) + " out of bounds for length " +
+          std::to_string(array->size()),
         Source(arrayAccess->index.start.line)
       );
     }
@@ -63,13 +75,17 @@ struct : Visitor {
       try {
         for (int i = 0; i < p.statements.size() - 1; ++i)
           visit(*p.statements[i]);
-  
+
         const auto result = eval(*p.statements[p.statements.size() - 1]);
-  
-        if (dynamic_cast<ExpressionStatement*>(p.statements[p.statements.size() - 1]))
+
+        if (
+          dynamic_cast<ExpressionStatement*>(
+            p.statements[p.statements.size() - 1]
+          )
+        )
           RETURN(result);
+      } catch (RuntimeError e) {
       }
-      catch (RuntimeError e) {}
     }
 
     RETURN(Value{std::monostate{}});
@@ -89,15 +105,14 @@ struct : Visitor {
     RETURN(eval(s.expr));
   }
 
-  void visitIfStatement(IfStatement& s) override  {
-    if (std::get<bool>(eval(s.condition).data))
-      visit(s.thenBranch);
+  void visitIfStatement(IfStatement& s) override {
+    if (std::get<bool>(eval(s.condition).data)) visit(s.thenBranch);
     else if (s.elseBranch)
       visit(*s.elseBranch);
   }
 
   void visitReturnStatement(ReturnStatement& s) override {
-    throw Return(s.value? eval(*s.value) : Value{std::monostate{}});
+    throw Return(s.value ? eval(*s.value) : Value{std::monostate{}});
   }
 
   void visitBreakStatement(BreakStatement& s) override {
@@ -112,9 +127,10 @@ struct : Visitor {
     while (std::get<bool>(eval(s.condition).data)) {
       try {
         visit(s.body);
+      } catch (Continue) {
+      } catch (Break) {
+        break;
       }
-      catch (Continue) {}
-      catch (Break) { break; }
     }
   }
 
@@ -132,7 +148,7 @@ struct : Visitor {
     current = new Environment(current);
     current->set(
       s.id.lexeme,
-      s.initializer? eval(*s.initializer) : Value{std::monostate{}}
+      s.initializer ? eval(*s.initializer) : Value{std::monostate{}}
     );
   }
 
@@ -145,19 +161,33 @@ struct : Visitor {
     switch (e.value.type) {
       case INT: {
         long long result;
-        auto [_, ec] = std::from_chars(e.value.lexeme.data(), e.value.lexeme.data() + e.value.lexeme.size(), result);
-        
+        auto [_, ec] = std::from_chars(
+          e.value.lexeme.data(),
+          e.value.lexeme.data() + e.value.lexeme.size(),
+          result
+        );
+
         if (ec == std::errc::result_out_of_range)
-          throw RuntimeError("number " + e.value.lexeme + " out of range for type 'int'", Source(e.value.line));
+          throw RuntimeError(
+            "number " + e.value.lexeme + " out of range for type 'int'",
+            Source(e.value.line)
+          );
 
         RETURN(Value{result});
       }
       case FLOAT: {
         double result;
-        auto [_, ec] = std::from_chars(e.value.lexeme.data(), e.value.lexeme.data() + e.value.lexeme.size(), result);
-        
+        auto [_, ec] = std::from_chars(
+          e.value.lexeme.data(),
+          e.value.lexeme.data() + e.value.lexeme.size(),
+          result
+        );
+
         if (ec == std::errc::result_out_of_range)
-          throw RuntimeError("number " + e.value.lexeme + " out of range for type 'float'", Source(e.value.line));
+          throw RuntimeError(
+            "number " + e.value.lexeme + " out of range for type 'float'",
+            Source(e.value.line)
+          );
 
         RETURN(Value{result});
       }
@@ -184,7 +214,7 @@ struct : Visitor {
 
   void visitCallExpression(CallExpression& e) override {
     Value callee = eval(e.callee);
-    Function* function = (Function*) std::get<Object*>(callee.data);
+    Function* function = (Function*)std::get<Object*>(callee.data);
 
     if (function->nativeImpl) {
       std::vector<Value, gc_allocator<Value>> args;
@@ -195,8 +225,7 @@ struct : Visitor {
 
       try {
         RETURN(function->nativeImpl(args));
-      }
-      catch(const std::runtime_error& error) {
+      } catch (const std::runtime_error& error) {
         throw RuntimeError(error.what(), Source(e.start.line));
       }
     }
@@ -212,8 +241,7 @@ struct : Visitor {
     try {
       for (Statement* statement : function->declaration.body.statements)
         visit(*statement);
-    }
-    catch(Return r) {
+    } catch (Return r) {
       current = previous;
       RETURN(r.value);
     }
@@ -223,32 +251,44 @@ struct : Visitor {
   }
 
   void visitArrayAccessExpression(ArrayAccessExpression& e) override {
-    auto array = (Array*) std::get<Object*>(eval(e.array).data);
+    auto array = (Array*)std::get<Object*>(eval(e.array).data);
     const long long index = std::get<long long>(eval(e.index).data);
-    
+
     if (index >= 0 && index < array->size()) RETURN((*array)[index]);
 
-    throw RuntimeError("index " + std::to_string(index) + " out of bounds for length " + std::to_string(array->size()), Source(e.index.start.line));
+    throw RuntimeError(
+      "index " + std::to_string(index) + " out of bounds for length " +
+        std::to_string(array->size()),
+      Source(e.index.start.line)
+    );
   }
 
   void visitCastExpression(CastExpression& e) override {
     Value value = eval(e.expr);
-    
+
     if (e.type->superset(value.typeOf())) RETURN(value);
 
-    throw RuntimeError("failed to cast type '" + value.typeOf()->toString() + "' to type '" + e.type->toString() + "'", Source(e.start.line));
+    throw RuntimeError(
+      "failed to cast type '" + value.typeOf()->toString() + "' to type '" +
+        e.type->toString() + "'",
+      Source(e.start.line)
+    );
   }
 
   void visitPostfixExpression(PostfixExpression& e) override {
     Value& value = getLValue(e.expr);
 
     if (e.op.type == INCREMENT) {
-      if (long long* p = std::get_if<long long>(&value.data)) RETURN(Value{(*p)++});
-      else RETURN(Value{std::get<double>(value.data)++});
+      if (long long* p = std::get_if<long long>(&value.data))
+        RETURN(Value{(*p)++});
+      else
+        RETURN(Value{std::get<double>(value.data)++});
     }
     else {
-      if (long long* p = std::get_if<long long>(&value.data)) RETURN(Value{(*p)--});
-      else RETURN(Value{std::get<double>(value.data)--});
+      if (long long* p = std::get_if<long long>(&value.data))
+        RETURN(Value{(*p)--});
+      else
+        RETURN(Value{std::get<double>(value.data)--});
     }
   }
 
@@ -258,15 +298,18 @@ struct : Visitor {
       case MINUS: {
         const Value expr = eval(e.expr);
 
-        RETURN(std::holds_alternative<long long>(expr.data)?
-          Value{-std::get<long long>(expr.data)}
-          : Value{-std::get<double>(expr.data)});
+        RETURN(
+          std::holds_alternative<long long>(expr.data)
+            ? Value{-std::get<long long>(expr.data)}
+            : Value{-std::get<double>(expr.data)}
+        );
       }
       case INCREMENT: {
         Value& value = getLValue(e.expr);
 
         if (long long* p = std::get_if<long long>(&value.data)) ++(*p);
-        else ++std::get<double>(value.data);
+        else
+          ++std::get<double>(value.data);
 
         RETURN(value);
       }
@@ -274,7 +317,8 @@ struct : Visitor {
         Value& value = getLValue(e.expr);
 
         if (long long* p = std::get_if<long long>(&value.data)) --(*p);
-        else --std::get<double>(value.data);
+        else
+          --std::get<double>(value.data);
 
         RETURN(value);
       }
@@ -287,9 +331,14 @@ struct : Visitor {
     const Value right = eval(e.right);
 
     switch (e.op.type) {
-      case COALESCENCE: RETURN(std::holds_alternative<std::monostate>(left.data)? right : left);
-      case AND: RETURN(Value{std::get<bool>(left.data) && std::get<bool>(right.data)});
-      case OR: RETURN(Value{std::get<bool>(left.data) || std::get<bool>(right.data)});
+      case COALESCENCE:
+        RETURN(
+          std::holds_alternative<std::monostate>(left.data) ? right : left
+        );
+      case AND:
+        RETURN(Value{std::get<bool>(left.data) && std::get<bool>(right.data)});
+      case OR:
+        RETURN(Value{std::get<bool>(left.data) || std::get<bool>(right.data)});
       case EQUALS: RETURN(Value{left == right});
       case NOT_EQUALS: RETURN(Value{!(left == right)});
       case GREATER: RETURN(MATH_OP(left, >, right));
@@ -298,9 +347,9 @@ struct : Visitor {
       case LESS_EQUALS: RETURN(MATH_OP(left, <=, right));
       case PLUS:
         if (std::holds_alternative<Object*>(left.data)) {
-          const String* a = (String*) std::get<Object*>(left.data);
-          const String* b = (String*) std::get<Object*>(right.data);
-          
+          const String* a = (String*)std::get<Object*>(left.data);
+          const String* b = (String*)std::get<Object*>(right.data);
+
           RETURN(Value{new String(a->chars + b->chars)});
         }
 
@@ -312,29 +361,39 @@ struct : Visitor {
         if (std::holds_alternative<long long>(left.data)) {
           const long long rightNum = std::get<long long>(right.data);
 
-          if (rightNum != 0) RETURN(Value{std::get<long long>(left.data) / rightNum});
+          if (rightNum != 0)
+            RETURN(Value{std::get<long long>(left.data) / rightNum});
 
           throw RuntimeError("cannot divide by 0", Source(e.op.line));
         }
 
-        RETURN(Value{std::get<double>(left.data) / std::get<double>(right.data)});
+        RETURN(
+          Value{std::get<double>(left.data) / std::get<double>(right.data)}
+        );
       }
       default: {
         if (std::holds_alternative<long long>(left.data)) {
           const long long rightNum = std::get<long long>(right.data);
 
-          if (rightNum != 0) RETURN(Value{std::get<long long>(left.data) % rightNum});
+          if (rightNum != 0)
+            RETURN(Value{std::get<long long>(left.data) % rightNum});
 
           throw RuntimeError("cannot divide by 0", Source(e.op.line));
         }
 
-        RETURN(Value{std::fmod(std::get<double>(left.data), std::get<double>(right.data))});
+        RETURN(
+          Value{
+            std::fmod(std::get<double>(left.data), std::get<double>(right.data))
+          }
+        );
       }
     }
   }
 
   void visitTernaryExpression(TernaryExpression& e) override {
-    RETURN(std::get<bool>(eval(e.condition).data)? eval(e.value) : eval(e._default));
+    RETURN(
+      std::get<bool>(eval(e.condition).data) ? eval(e.value) : eval(e._default)
+    );
   }
 
   void visitAssignmentExpression(AssignmentExpression& e) override {
@@ -345,9 +404,9 @@ struct : Visitor {
       case ASSIGN: RETURN(l_value = value);
       case PLUS_EQUALS: {
         if (std::holds_alternative<Object*>(value.data)) {
-          const String* a = (String*) std::get<Object*>(l_value.data);
-          const String* b = (String*) std::get<Object*>(value.data);
-            
+          const String* a = (String*)std::get<Object*>(l_value.data);
+          const String* b = (String*)std::get<Object*>(value.data);
+
           RETURN(l_value = Value{new String(a->chars + b->chars)});
         }
 
@@ -359,23 +418,29 @@ struct : Visitor {
         if (long long* p = std::get_if<long long>(&l_value.data)) {
           const long long rightNum = std::get<long long>(value.data);
 
-          if (rightNum != 0) RETURN(Value{*p /= rightNum});
+          if (rightNum != 0) RETURN(Value{* p /= rightNum});
 
           throw RuntimeError("cannot divide by 0", Source(e.op.line));
         }
 
-        RETURN(Value{std::get<double>(l_value.data) /= std::get<double>(value.data)});
+        RETURN(
+          Value{std::get<double>(l_value.data) /= std::get<double>(value.data)}
+        );
       }
       default: {
         if (long long* ptr = std::get_if<long long>(&l_value.data)) {
           const long long rightNum = std::get<long long>(value.data);
 
-          if (rightNum != 0) RETURN(Value{*ptr %= rightNum});
+          if (rightNum != 0) RETURN(Value{* ptr %= rightNum});
 
           throw RuntimeError("cannot divide by 0", Source(e.op.line));
         }
 
-        RETURN(l_value = Value{std::fmod(std::get<double>(l_value.data), std::get<double>(value.data))});
+        RETURN(
+          l_value = Value{std::fmod(
+            std::get<double>(l_value.data), std::get<double>(value.data)
+          )}
+        );
       }
     }
   }

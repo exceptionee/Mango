@@ -2,6 +2,7 @@
 
 #include <ostream>
 #include <string>
+#include <vector>
 
 struct Type {
   virtual bool equals(Type* type) = 0;
@@ -31,7 +32,8 @@ struct FunctionType : Type {
   std::vector<Type*> args;
   Type* returnType;
 
-  FunctionType(std::vector<Type*> args, Type* returnType) : args(args), returnType(returnType) {}
+  FunctionType(std::vector<Type*> args, Type* returnType)
+    : args(args), returnType(returnType) {}
 
   bool equals(Type* type) override {
     if (FunctionType* functionType = dynamic_cast<FunctionType*>(type)) {
@@ -42,14 +44,14 @@ struct FunctionType : Type {
 
       return returnType->equals(functionType->returnType);
     }
-  
+
     return false;
   }
 
   bool superset(Type* type) override {
     return equals(type);
   }
-  
+
   virtual std::string toString() override {
     std::string result = "(";
 
@@ -79,7 +81,7 @@ struct UnionType : Type {
     if (!unionType) {
       for (Type* t : types)
         if (t->superset(type)) return true;
-        
+
       return false;
     }
 
@@ -156,8 +158,10 @@ inline void addType(std::vector<Type*>& types, Type* type) {
 
   for (auto it = types.begin(); it != types.end();) {
     if ((*it)->superset(type)) return;
-    else if (type->superset(*it)) it = types.erase(it);
-    else ++it;
+    else if (type->superset(*it))
+      it = types.erase(it);
+    else
+      ++it;
   }
 
   types.push_back(type);

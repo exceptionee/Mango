@@ -1,7 +1,5 @@
 #pragma once
 
-#include "ASTNode.h"
-
 struct ASTNode;
 struct Program;
 struct BlockStatement;

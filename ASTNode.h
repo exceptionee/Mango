@@ -1,9 +1,9 @@
 #pragma once
 
-#include <vector>
 #include "Token.h"
 #include "Type.h"
 #include "Visitor.h"
+#include <vector>
 
 struct Visitor;
 
@@ -102,7 +102,8 @@ struct UnaryExpression : public Expression {
   Token op;
   Expression& expr;
 
-  UnaryExpression(Token op, Expression& expr) : Expression(op), op(op), expr(expr) {}
+  UnaryExpression(Token op, Expression& expr)
+    : Expression(op), op(op), expr(expr) {}
 
   void accept(Visitor& v) override {
     v.visitUnaryExpression(*this);
@@ -127,8 +128,11 @@ struct TernaryExpression : public Expression {
   Expression& value;
   Expression& _default;
 
-  TernaryExpression(Expression& condition, Expression& value, Expression& _default)
-    : Expression(condition.start), condition(condition), value(value), _default(_default) {}
+  TernaryExpression(
+    Expression& condition, Expression& value, Expression& _default
+  )
+    : Expression(condition.start), condition(condition), value(value),
+      _default(_default) {}
 
   void accept(Visitor& v) override {
     v.visitTernaryExpression(*this);
@@ -177,7 +181,9 @@ struct IfStatement : public Statement {
   Statement& thenBranch;
   Statement* elseBranch;
 
-  IfStatement(Expression& condition, Statement& thenBranch, Statement* elseBranch)
+  IfStatement(
+    Expression& condition, Statement& thenBranch, Statement* elseBranch
+  )
     : condition(condition), thenBranch(thenBranch), elseBranch(elseBranch) {}
 
   void accept(Visitor& v) override {
@@ -189,7 +195,8 @@ struct ReturnStatement : public Statement {
   Token token;
   Expression* value;
 
-  ReturnStatement(Token token, Expression* value) : token(token), value(value) {}
+  ReturnStatement(Token token, Expression* value)
+    : token(token), value(value) {}
 
   void accept(Visitor& v) override {
     v.visitReturnStatement(*this);
@@ -241,7 +248,9 @@ struct FunctionDeclaration : public Statement {
   Type* returnType;
   BlockStatement& body;
 
-  FunctionDeclaration(Token id, std::vector<Argument> args, Type* returnType, BlockStatement& body)
+  FunctionDeclaration(
+    Token id, std::vector<Argument> args, Type* returnType, BlockStatement& body
+  )
     : id(id), args(args), returnType(returnType), body(body) {}
 
   void accept(Visitor& v) override {
@@ -282,5 +291,5 @@ struct Program : public ASTNode {
 
   void accept(Visitor& v) override {
     v.visitProgram(*this);
-  } 
+  }
 };

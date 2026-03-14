@@ -1,10 +1,10 @@
+#include "Interpreter.h"
+#include "Value.h"
+#include <gc/gc_allocator.h>
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <chrono>
-#include <gc/gc_allocator.h>
-#include "Value.h"
-#include "Interpreter.h"
 
 std::string declarations = R"(
   func print(value: any): null {}
@@ -29,7 +29,7 @@ void registerBuiltins() {
     std::cout << args[0].toString();
     return Value{std::monostate{}};
   };
-  
+
   builtins["println"] = [](std::vector<Value, gc_allocator<Value>>& args) {
     std::cout << args[0].toString() << std::endl;
     return Value{std::monostate{}};
@@ -43,24 +43,27 @@ void registerBuiltins() {
 
   builtins["clock"] = [](std::vector<Value, gc_allocator<Value>>& args) {
     auto now = std::chrono::system_clock::now();
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                now.time_since_epoch()
+    )
+                .count();
     return Value{ms};
   };
 
   builtins["sizeof"] = [](std::vector<Value, gc_allocator<Value>>& args) {
     if (args[0].data.index() == 4) {
       Object* object = std::get<Object*>(args[0].data);
-      
+
       if (String* string = dynamic_cast<String*>(object))
-        return Value{(long long) string->chars.size()};
+        return Value{(long long)string->chars.size()};
       else if (Array* array = dynamic_cast<Array*>(object))
-        return Value{(long long) array->size()};
+        return Value{(long long)array->size()};
     }
     return Value{static_cast<long long>(sizeof(args[0].data))};
   };
-  
+
   builtins["read"] = [](std::vector<Value, gc_allocator<Value>>& args) {
-    std::string filename = ((String*) std::get<Object*>(args[0].data))->chars;
+    std::string filename = ((String*)std::get<Object*>(args[0].data))->chars;
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
 
     if (!file.is_open())
@@ -83,8 +86,8 @@ void registerBuiltins() {
   };
 
   builtins["write"] = [](std::vector<Value, gc_allocator<Value>>& args) {
-    std::string filename = ((String*) std::get<Object*>(args[0].data))->chars;
-    auto content = (Array*) std::get<Object*>(args[1].data);
+    std::string filename = ((String*)std::get<Object*>(args[0].data))->chars;
+    auto content = (Array*)std::get<Object*>(args[1].data);
 
     std::ofstream file(filename, std::ios::binary);
 
@@ -105,19 +108,23 @@ void registerBuiltins() {
 
   builtins["splice"] = [](std::vector<Value, gc_allocator<Value>>& args) {
     if (args[0].data.index() != 4 || args[3].data.index() != 4)
-      throw std::runtime_error("first and fourth arguments to splice must be arrays");
+      throw std::runtime_error(
+        "first and fourth arguments to splice must be arrays"
+      );
 
     Array* array = dynamic_cast<Array*>(std::get<Object*>(args[0].data));
     Array* insert = dynamic_cast<Array*>(std::get<Object*>(args[3].data));
 
     if (!array || !insert)
-      throw std::runtime_error("first and fourth arguments to splice must be arrays");
+      throw std::runtime_error(
+        "first and fourth arguments to splice must be arrays"
+      );
 
     int start = std::get<long long>(args[1].data);
     int deleteCount = std::get<long long>(args[2].data);
 
-    start = std::clamp(start, 0, (int) array->size());
-    deleteCount = std::clamp(deleteCount, 0, (int) array->size() - start);
+    start = std::clamp(start, 0, (int)array->size());
+    deleteCount = std::clamp(deleteCount, 0, (int)array->size() - start);
 
     array->erase(array->begin() + start, array->begin() + start + deleteCount);
     array->insert(array->begin() + start, insert->begin(), insert->end());

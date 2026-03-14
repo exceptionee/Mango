@@ -1,7 +1,7 @@
-#include <utility>
-#include <vector>
 #include "ASTNode.h"
 #include "Error.h"
+#include <utility>
+#include <vector>
 
 struct {
   std::vector<Token> tokens;
@@ -10,7 +10,7 @@ struct {
   Program* parse(std::vector<Token> tokens) {
     this->tokens = std::move(tokens);
     current = 0;
-    
+
     return program();
   }
 
@@ -30,7 +30,7 @@ struct {
     Type* t = arrayType();
 
     if (match(UNION)) {
-      std::vector<Type*> types = { t, arrayType() };
+      std::vector<Type*> types = {t, arrayType()};
 
       while (match(UNION))
         types.push_back(arrayType());
@@ -62,11 +62,11 @@ struct {
       Type* t = type();
 
       if (match(RIGHT_PAREN)) {
-        if (match(ARROW)) return new FunctionType({ t }, type());
+        if (match(ARROW)) return new FunctionType({t}, type());
         return t;
       }
 
-      std::vector<Type*> args = { t };
+      std::vector<Type*> args = {t};
 
       while (match(COMMA))
         args.push_back(type());
@@ -93,12 +93,13 @@ struct {
   Statement* declaration() {
     try {
       if (match(FUNC)) return functionDeclaration();
-      else if (match(VAR)) return varDeclaration();
-      else if (match(CONST)) return constDeclaration();
+      else if (match(VAR))
+        return varDeclaration();
+      else if (match(CONST))
+        return constDeclaration();
 
       return statement();
-    }
-    catch (SyntaxError e) {
+    } catch (SyntaxError e) {
       synchronize();
       return nullptr;
     }
@@ -109,7 +110,7 @@ struct {
     consume(LEFT_PAREN, "expected '('");
 
     std::vector<Argument> args;
-    
+
     if (peek().type != RIGHT_PAREN) {
       do {
         args.push_back(argument());
@@ -117,7 +118,7 @@ struct {
     }
     consume(RIGHT_PAREN, "expect ')' after parameters");
 
-    Type* returnType = match(COLON)? type() : ANY_T;
+    Type* returnType = match(COLON) ? type() : ANY_T;
 
     BlockStatement* body = block();
 
@@ -126,15 +127,15 @@ struct {
 
   Argument argument() {
     Token id = consume(ID, "expected identifier");
-    Type* t = match(COLON)? type() : ANY_T;
+    Type* t = match(COLON) ? type() : ANY_T;
 
     return Argument(id, t);
   }
 
   Statement* varDeclaration() {
     Token id = consume(ID, "expected identifier");
-    Type* t = match(COLON)? type() : nullptr;
-    Expression* initializer = match(ASSIGN)? expression() : nullptr;
+    Type* t = match(COLON) ? type() : nullptr;
+    Expression* initializer = match(ASSIGN) ? expression() : nullptr;
     consume(SEMI, "expected ';'");
 
     return new VarDeclaration(id, t, initializer);
@@ -142,7 +143,7 @@ struct {
 
   Statement* constDeclaration() {
     Token id = consume(ID, "expected identifier");
-    Type* t = match(COLON)? type() : nullptr;
+    Type* t = match(COLON) ? type() : nullptr;
     consume(ASSIGN, "'const' declarations must have an initializer");
     Expression* initializer = expression();
     consume(SEMI, "expected ';'");
@@ -153,26 +154,28 @@ struct {
   Statement* statement() {
     if (match(FOR)) {
       consume(LEFT_PAREN, "expected '(' after 'for'");
-      Statement* initializer = match(SEMI)? nullptr :
-        match(VAR)? varDeclaration() :
-        match(CONST)? constDeclaration() : expressionStatement();
+      Statement* initializer = match(SEMI) ? nullptr
+        : match(VAR)                       ? varDeclaration()
+        : match(CONST)                     ? constDeclaration()
+                                           : expressionStatement();
 
-      Expression* condition = peek().type == SEMI?
-        new LiteralExpression(Token(TRUE, "true", 0)) : expression();
+      Expression* condition = peek().type == SEMI
+        ? new LiteralExpression(Token(TRUE, "true", 0))
+        : expression();
       consume(SEMI, "expected ';' after condition");
 
-      Expression* increment = peek().type == RIGHT_PAREN? nullptr : expression();
+      Expression* increment =
+        peek().type == RIGHT_PAREN ? nullptr : expression();
       consume(RIGHT_PAREN, "expected ')' after clauses");
 
       Statement* body = statement();
 
       if (increment)
-        body = new BlockStatement({ body, new ExpressionStatement(*increment) });
+        body = new BlockStatement({body, new ExpressionStatement(*increment)});
 
       body = new WhileStatement(*condition, *body);
-      
-      if (initializer)
-        body = new BlockStatement({ initializer, body });
+
+      if (initializer) body = new BlockStatement({initializer, body});
 
       return body;
     }
@@ -182,13 +185,13 @@ struct {
       consume(RIGHT_PAREN, "expected ')' after condition");
 
       Statement* thenBranch = statement();
-      Statement* elseBranch = match(ELSE)? statement() : nullptr;
+      Statement* elseBranch = match(ELSE) ? statement() : nullptr;
 
       return new IfStatement(*condition, *thenBranch, elseBranch);
     }
     else if (match(RETURN)) {
       const Token token = previous();
-      Expression* value = peek().type == SEMI? nullptr : expression();
+      Expression* value = peek().type == SEMI ? nullptr : expression();
       consume(SEMI, "expect ';' after return value");
       return new ReturnStatement(token, value);
     }
@@ -207,10 +210,11 @@ struct {
       Expression* condition = expression();
       consume(RIGHT_PAREN, "expected ')' after condition");
       Statement* body = statement();
-      
+
       return new WhileStatement(*condition, *body);
     }
-    else if (peek().type == LEFT_BRACE) return block();
+    else if (peek().type == LEFT_BRACE)
+      return block();
 
     return expressionStatement();
   }
@@ -242,7 +246,10 @@ struct {
   Expression* assignment() {
     Expression* expr = ternary();
 
-    if (match(ASSIGN) || match(PLUS_EQUALS) || match(MINUS_EQUALS) || match(STAR_EQUALS) || match(SLASH_EQUALS) || match(MODULO_EQUALS)) {
+    if (
+      match(ASSIGN) || match(PLUS_EQUALS) || match(MINUS_EQUALS) ||
+      match(STAR_EQUALS) || match(SLASH_EQUALS) || match(MODULO_EQUALS)
+    ) {
       const Token op = previous();
       return new AssignmentExpression(*expr, op, *assignment());
     }
@@ -300,7 +307,8 @@ struct {
   Expression* comparison() {
     Expression* expr = term();
 
-    while (match(GREATER) || match(LESS) || match(GREATER_EQUALS) || match(LESS_EQUALS)) {
+    while (match(GREATER) || match(LESS) || match(GREATER_EQUALS) ||
+           match(LESS_EQUALS)) {
       const Token op = previous();
       expr = new BinaryExpression(*expr, op, *term());
     }
@@ -331,7 +339,10 @@ struct {
   }
 
   Expression* unary() {
-    if (match(PLUS) || match(MINUS) || match(INCREMENT) || match(DECREMENT) || match(NOT)) {
+    if (
+      match(PLUS) || match(MINUS) || match(INCREMENT) || match(DECREMENT) ||
+      match(NOT)
+    ) {
       const Token op = previous();
       return new UnaryExpression(op, *unary());
     }
@@ -418,8 +429,7 @@ struct {
       case CHAR:
       case TRUE:
       case FALSE:
-      case _NULL:
-        return new LiteralExpression(advance());
+      case _NULL: return new LiteralExpression(advance());
       case ID: return new VarExpression(advance());
       default: throw SyntaxError("expected expression", Source(peek().line));
     }
@@ -430,8 +440,7 @@ struct {
   }
 
   inline bool match(TokenType type) {
-    if (peek().type != type)
-      return false;
+    if (peek().type != type) return false;
 
     ++current;
     return true;
@@ -468,8 +477,7 @@ struct {
         case WHILE:
         case RETURN:
         case BREAK:
-        case CONTINUE:
-          return;
+        case CONTINUE: return;
         default: advance();
       }
     }

@@ -1,8 +1,8 @@
+#include "Error.h"
+#include "Token.h"
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "Error.h"
-#include "Token.h"
 
 struct {
   std::string source;
@@ -42,12 +42,9 @@ struct {
     switch (c) {
       case ' ':
       case '\r':
-      case '\t':
-        return;
+      case '\t': return;
 
-      case '\n':
-        ++line;
-        return;
+      case '\n': ++line; return;
 
       case '(': return tokens.push_back(Token(LEFT_PAREN, "(", line));
       case ')': return tokens.push_back(Token(RIGHT_PAREN, ")", line));
@@ -61,17 +58,26 @@ struct {
       case ':': return tokens.push_back(Token(COLON, ":", line));
 
       case '+':
-        return tokens.push_back(match('+')? Token(INCREMENT, "++", line) :
-          match('=')? Token(PLUS_EQUALS, "+=", line) : Token(PLUS, "+", line));
+        return tokens.push_back(
+          match('+')     ? Token(INCREMENT, "++", line)
+            : match('=') ? Token(PLUS_EQUALS, "+=", line)
+                         : Token(PLUS, "+", line)
+        );
       case '-':
-        return tokens.push_back(match('>')? Token(ARROW, "->", line) :
-          match('-')? Token(DECREMENT, "--", line) :
-          match('=')? Token(MINUS_EQUALS, "-=", line) : Token(MINUS, "-", line));
+        return tokens.push_back(
+          match('>')     ? Token(ARROW, "->", line)
+            : match('-') ? Token(DECREMENT, "--", line)
+            : match('=') ? Token(MINUS_EQUALS, "-=", line)
+                         : Token(MINUS, "-", line)
+        );
       case '*':
-        return tokens.push_back(match('=')? Token(STAR_EQUALS, "*=", line) : Token(STAR, "*", line));
+        return tokens.push_back(
+          match('=') ? Token(STAR_EQUALS, "*=", line) : Token(STAR, "*", line)
+        );
 
       case '/':
-        if (match('=')) return tokens.push_back(Token(SLASH_EQUALS, "/=", line));
+        if (match('='))
+          return tokens.push_back(Token(SLASH_EQUALS, "/=", line));
         else if (match('/')) { // matches line comments
           while (current < source.size() && peek() != '\n')
             ++current;
@@ -85,7 +91,8 @@ struct {
             const char c = advance();
 
             if (c == '\n') line++;
-            else if (c == '/' && source[current - 2] == '*') return;
+            else if (c == '/' && source[current - 2] == '*')
+              return;
           }
 
           SyntaxError("unterminated comment", Source(line));
@@ -93,34 +100,53 @@ struct {
         }
 
         return tokens.push_back(Token(SLASH, "/", line));
-      
+
       case '%':
-        return tokens.push_back(match('=')? Token(MODULO_EQUALS, "%=", line) : Token(MODULO, "%", line));
+        return tokens.push_back(
+          match('=') ? Token(MODULO_EQUALS, "%=", line)
+                     : Token(MODULO, "%", line)
+        );
       case '=':
-        return tokens.push_back(match('=')? Token(EQUALS, "==", line) : Token(ASSIGN, "=", line));
+        return tokens.push_back(
+          match('=') ? Token(EQUALS, "==", line) : Token(ASSIGN, "=", line)
+        );
       case '!':
-        return tokens.push_back(match('=')? Token(NOT_EQUALS, "!=", line) : Token(NOT, "!", line));
+        return tokens.push_back(
+          match('=') ? Token(NOT_EQUALS, "!=", line) : Token(NOT, "!", line)
+        );
       case '>':
-        return tokens.push_back(match('=')? Token(GREATER_EQUALS, ">=", line) : Token(GREATER, ">", line));
+        return tokens.push_back(
+          match('=') ? Token(GREATER_EQUALS, ">=", line)
+                     : Token(GREATER, ">", line)
+        );
       case '<':
-        return tokens.push_back(match('=')? Token(LESS_EQUALS, "<=", line) : Token(LESS, "<", line));
+        return tokens.push_back(
+          match('=') ? Token(LESS_EQUALS, "<=", line) : Token(LESS, "<", line)
+        );
       case '|':
-        return tokens.push_back(match('|')? Token(OR, "||", line) : Token(UNION, "|", line));
+        return tokens.push_back(
+          match('|') ? Token(OR, "||", line) : Token(UNION, "|", line)
+        );
       case '&':
         if (match('&')) return tokens.push_back(Token(AND, "&&", line));
         break;
       case '?':
-        return tokens.push_back(match('?')? Token(COALESCENCE, "??", line) : Token(TERNARY, "?", line));
+        return tokens.push_back(
+          match('?') ? Token(COALESCENCE, "??", line)
+                     : Token(TERNARY, "?", line)
+        );
 
       case '"': { // handles strings
         std::string str = "";
-        
+
         while (current < source.size() && peek() != '\n') {
           char next = advance();
 
           if (next == '"') return tokens.push_back(Token(STRING, str, line));
-          else if (next == '\\') str += escape();
-          else str += next;
+          else if (next == '\\')
+            str += escape();
+          else
+            str += next;
         }
 
         SyntaxError("unterminated string", Source(line));
@@ -141,12 +167,16 @@ struct {
             ++current;
 
           if (!match('.'))
-            return tokens.push_back(Token(INT, source.substr(start, current - start), line));
+            return tokens.push_back(
+              Token(INT, source.substr(start, current - start), line)
+            );
 
           while (isdigit(peek()))
             ++current;
 
-          return tokens.push_back(Token(FLOAT, source.substr(start, current - start), line));
+          return tokens.push_back(
+            Token(FLOAT, source.substr(start, current - start), line)
+          );
         }
         else if (isalpha(c) || c == '_') { // handles identifiers and keywords
           while (isalnum(peek()) || peek() == '_')
@@ -154,8 +184,11 @@ struct {
 
           auto it = keywords.find(source.substr(start, current - start));
 
-          return tokens.push_back(Token(it == keywords.end()? ID : it->second,
-            source.substr(start, current - start), line));
+          return tokens.push_back(Token(
+            it == keywords.end() ? ID : it->second,
+            source.substr(start, current - start),
+            line
+          ));
         }
     }
 
@@ -163,7 +196,7 @@ struct {
   }
 
   char escape() {
-    switch (peek() != '\n'? advance() : 0x0) {
+    switch (peek() != '\n' ? advance() : 0x0) {
       case '"': return '"';
       case '\'': return '\'';
       case '\\': return '\\';
@@ -171,9 +204,7 @@ struct {
       case 't': return '\t';
       case 'n': return '\n';
       case 'r': return '\r';
-      default:
-        SyntaxError("invalid escape sequence", Source(line));
-        return 0x0;
+      default: SyntaxError("invalid escape sequence", Source(line)); return 0x0;
     }
   }
 
@@ -182,8 +213,7 @@ struct {
   }
 
   inline bool match(char expected) {
-    if (peek() != expected)
-      return false;
+    if (peek() != expected) return false;
 
     ++current;
     return true;

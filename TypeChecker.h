@@ -1,23 +1,24 @@
-#include <deque>
-#include "Visitor.h"
 #include "ASTNode.h"
-#include "Token.h"
 #include "Error.h"
+#include "Token.h"
 #include "Type.h"
+#include "Visitor.h"
+#include <algorithm>
+#include <cstdint>
+#include <deque>
+#include <unordered_map>
 
 #undef RETURN
-#define RETURN(type) do { inferredType = type; return; } while (0)
+#define RETURN(type) \
+  do { \
+    inferredType = type; \
+    return; \
+  } while (0)
 
-enum Flags {
-  IMMUTABLE = 1 << 0
-};
+enum Flags { IMMUTABLE = 1 << 0 };
 
 struct Context {
-  enum Kind {
-    SCOPE,
-    FUNCTION,
-    LOOP
-  };
+  enum Kind { SCOPE, FUNCTION, LOOP };
 
   Kind kind;
   std::unordered_map<std::string, std::pair<Type*, uint32_t>> symbols = {};
@@ -33,8 +34,7 @@ struct : Visitor {
       for (auto& pair : rit->symbols)
         if (pair.first == t.lexeme) return &pair.second;
 
-    ReferenceError("'" + t.lexeme + "' has not been declared",
-      Source(t.line));
+    ReferenceError("'" + t.lexeme + "' has not been declared", Source(t.line));
     return nullptr;
   }
 
@@ -69,20 +69,24 @@ struct : Visitor {
     Type* condition = infer(s.condition);
 
     if (condition != ERROR_T && condition != BOOL_T)
-      TypeError("'" + condition->toString() + "' cannot be converted to type 'bool'",
-        Source(s.condition.start.line));
-    
+      TypeError(
+        "'" + condition->toString() + "' cannot be converted to type 'bool'",
+        Source(s.condition.start.line)
+      );
+
     visit(s.thenBranch);
     if (s.elseBranch) visit(*s.elseBranch);
   }
 
   void visitReturnStatement(ReturnStatement& s) override {
-    auto context = std::find_if(stack.rbegin(), stack.rend(),
-      [](Context c) { return c.kind == Context::Kind::FUNCTION; });
+    auto context = std::find_if(stack.rbegin(), stack.rend(), [](Context c) {
+      return c.kind == Context::Kind::FUNCTION;
+    });
 
     if (context == stack.rend()) {
-      SyntaxError("'return' not allowed outside of a function",
-        Source(s.token.line));
+      SyntaxError(
+        "'return' not allowed outside of a function", Source(s.token.line)
+      );
     }
 
     if (!s.value) return;
@@ -90,28 +94,36 @@ struct : Visitor {
     Type* value = infer(*s.value);
 
     if (value != ERROR_T && !context->returnType->superset(value)) {
-      TypeError("cannot return type '" + value->toString() + "' from function with return type '" + context->returnType->toString() + "'",
-        Source(s.token.line));
+      TypeError(
+        "cannot return type '" + value->toString() +
+          "' from function with return type '" +
+          context->returnType->toString() + "'",
+        Source(s.token.line)
+      );
     }
   }
 
   void visitBreakStatement(BreakStatement& s) override {
-    auto context = std::find_if(stack.rbegin(), stack.rend(),
-      [](Context c) { return c.kind == Context::Kind::LOOP; });
+    auto context = std::find_if(stack.rbegin(), stack.rend(), [](Context c) {
+      return c.kind == Context::Kind::LOOP;
+    });
 
     if (context == stack.rend()) {
-      SyntaxError("'break' not allowed outside of a loop",
-        Source(s.token.line));
+      SyntaxError(
+        "'break' not allowed outside of a loop", Source(s.token.line)
+      );
     }
   }
 
   void visitContinueStatement(ContinueStatement& s) override {
-    auto context = std::find_if(stack.rbegin(), stack.rend(),
-      [](Context c) { return c.kind == Context::Kind::LOOP; });
+    auto context = std::find_if(stack.rbegin(), stack.rend(), [](Context c) {
+      return c.kind == Context::Kind::LOOP;
+    });
 
     if (context == stack.rend()) {
-      SyntaxError("'continue' not allowed outside of a loop",
-        Source(s.token.line));
+      SyntaxError(
+        "'continue' not allowed outside of a loop", Source(s.token.line)
+      );
     }
   }
 
@@ -119,9 +131,11 @@ struct : Visitor {
     Type* condition = infer(s.condition);
 
     if (condition != ERROR_T && condition != BOOL_T)
-      TypeError("'" + condition->toString() + "' cannot be converted to type 'bool'",
-        Source(s.condition.start.line));
-    
+      TypeError(
+        "'" + condition->toString() + "' cannot be converted to type 'bool'",
+        Source(s.condition.start.line)
+      );
+
     stack.push_back({Context::Kind::LOOP});
     visit(s.body);
     stack.pop_back();
@@ -130,7 +144,7 @@ struct : Visitor {
   void visitFunctionDeclaration(FunctionDeclaration& s) override {
     std::string id = s.id.lexeme;
     std::vector<Type*> args;
-    
+
     if (stack.back().symbols.find(id) != stack.back().symbols.end())
       TypeError("'" + id + "' has already been declared", Source(s.id.line));
 
@@ -140,8 +154,9 @@ struct : Visitor {
     stack.back().symbols.emplace(
       id,
       std::make_pair(
-        std::find(args.begin(), args.end(), ERROR_T) == args.end()?
-          new FunctionType(args, s.returnType) : ERROR_T,
+        std::find(args.begin(), args.end(), ERROR_T) == args.end()
+          ? new FunctionType(args, s.returnType)
+          : ERROR_T,
         IMMUTABLE
       )
     );
@@ -151,9 +166,14 @@ struct : Visitor {
     for (Argument arg : s.args) {
       std::string lexeme = arg.id.lexeme;
       if (stack.back().symbols.find(lexeme) != stack.back().symbols.end())
-        TypeError("duplicate paramater '" + lexeme + "' not allowed", Source(arg.id.line));
+        TypeError(
+          "duplicate paramater '" + lexeme + "' not allowed",
+          Source(arg.id.line)
+        );
 
-      stack.back().symbols.insert(std::make_pair(lexeme, std::make_pair(arg.type, 0)));
+      stack.back().symbols.insert(
+        std::make_pair(lexeme, std::make_pair(arg.type, 0))
+      );
     }
 
     for (Statement* statement : s.body.statements)
@@ -164,15 +184,21 @@ struct : Visitor {
 
   void visitVarDeclaration(VarDeclaration& s) override {
     std::string id = s.id.lexeme;
-    Type* valueType = s.initializer? infer(*s.initializer) : NULL_T;
-    Type* type = valueType == ERROR_T? ERROR_T : s.type? s.type : s.initializer? valueType : ANY_T;
+    Type* valueType = s.initializer ? infer(*s.initializer) : NULL_T;
+    Type* type = valueType == ERROR_T ? ERROR_T
+      : s.type                        ? s.type
+      : s.initializer                 ? valueType
+                                      : ANY_T;
 
     if (stack.back().symbols.find(id) != stack.back().symbols.end())
       TypeError("'" + id + "' has already been declared", Source(s.id.line));
     else if (s.type && valueType != ERROR_T && !s.type->superset(valueType)) {
       type = ERROR_T;
-      TypeError("cannot assign type '" + valueType->toString() + "' to type '" + s.type->toString() + "'",
-        Source(s.id.line));
+      TypeError(
+        "cannot assign type '" + valueType->toString() + "' to type '" +
+          s.type->toString() + "'",
+        Source(s.id.line)
+      );
     }
 
     stack.back().symbols.insert(std::make_pair(id, std::make_pair(type, 0)));
@@ -181,17 +207,22 @@ struct : Visitor {
   void visitConstDeclaration(ConstDeclaration& s) override {
     std::string id = s.id.lexeme;
     Type* valueType = infer(s.initializer);
-    Type* type = valueType == ERROR_T? ERROR_T : s.type? s.type : valueType;
+    Type* type = valueType == ERROR_T ? ERROR_T : s.type ? s.type : valueType;
 
     if (stack.back().symbols.find(id) != stack.back().symbols.end())
       TypeError("'" + id + "' has already been declared", Source(s.id.line));
     else if (s.type && valueType != ERROR_T && !s.type->superset(valueType)) {
       type = ERROR_T;
-      TypeError("cannot assign type '" + valueType->toString() + "' to type '" + s.type->toString() + "'",
-        Source(s.id.line));
+      TypeError(
+        "cannot assign type '" + valueType->toString() + "' to type '" +
+          s.type->toString() + "'",
+        Source(s.id.line)
+      );
     }
 
-    stack.back().symbols.insert(std::make_pair(id, std::make_pair(type, IMMUTABLE)));
+    stack.back().symbols.insert(
+      std::make_pair(id, std::make_pair(type, IMMUTABLE))
+    );
   }
 
   void visitLiteralExpression(LiteralExpression& e) override {
@@ -224,7 +255,7 @@ struct : Visitor {
 
   void visitVarExpression(VarExpression& e) override {
     auto symbol = getSymbol(e.id);
-    RETURN(symbol? symbol->first : ERROR_T);
+    RETURN(symbol ? symbol->first : ERROR_T);
   }
 
   void visitCallExpression(CallExpression& e) override {
@@ -245,20 +276,28 @@ struct : Visitor {
     FunctionType* function = dynamic_cast<FunctionType*>(callee);
 
     if (!function) {
-      TypeError("cannot call type '" + callee->toString() + "'",
-        Source(e.callee.start.line));
+      TypeError(
+        "cannot call type '" + callee->toString() + "'",
+        Source(e.callee.start.line)
+      );
       RETURN(ERROR_T);
     }
     else if (function->args.size() != args.size()) {
-      TypeError("expected " + std::to_string(function->args.size()) + " arguments but got " + std::to_string(args.size()),
-        Source(e.callee.start.line));
+      TypeError(
+        "expected " + std::to_string(function->args.size()) +
+          " arguments but got " + std::to_string(args.size()),
+        Source(e.callee.start.line)
+      );
       RETURN(ERROR_T);
     }
 
     for (int i = 0; i < args.size(); ++i) {
       if (!function->args[i]->superset(args[i])) {
-        TypeError("cannot assign argument of type '" + args[i]->toString() + "' to parameter of type '" + function->args[i]->toString() + "'",
-          Source(e.args[i]->start.line));
+        TypeError(
+          "cannot assign argument of type '" + args[i]->toString() +
+            "' to parameter of type '" + function->args[i]->toString() + "'",
+          Source(e.args[i]->start.line)
+        );
         RETURN(ERROR_T);
       }
     }
@@ -275,12 +314,16 @@ struct : Visitor {
     ArrayType* arrayType = dynamic_cast<ArrayType*>(type);
 
     if (!arrayType) {
-      TypeError("cannot perform an array access on type '" + type->toString() + "'",
-        Source(e.array.start.line));
+      TypeError(
+        "cannot perform an array access on type '" + type->toString() + "'",
+        Source(e.array.start.line)
+      );
       RETURN(ERROR_T);
     }
     else if (indexType != INT_T) {
-      TypeError("array index must be of type 'int'", Source(e.index.start.line));
+      TypeError(
+        "array index must be of type 'int'", Source(e.index.start.line)
+      );
       RETURN(ERROR_T);
     }
 
@@ -292,8 +335,11 @@ struct : Visitor {
 
     if (type == ERROR_T) RETURN(ERROR_T);
     else if (!type->superset(e.type)) {
-      TypeError("cannot cast type '" + type->toString() + "' to type '" + e.type->toString() + "'",
-        Source(e.expr.start.line));
+      TypeError(
+        "cannot cast type '" + type->toString() + "' to type '" +
+          e.type->toString() + "'",
+        Source(e.expr.start.line)
+      );
       RETURN(ERROR_T);
     }
 
@@ -307,22 +353,29 @@ struct : Visitor {
 
     if (VarExpression* expr = dynamic_cast<VarExpression*>(&e.expr)) {
       if ((getSymbol(expr->id)->second & IMMUTABLE) == IMMUTABLE) {
-        TypeError("cannot reassign '" + expr->id.lexeme + "'",
-          Source(e.expr.start.line));
+        TypeError(
+          "cannot reassign '" + expr->id.lexeme + "'", Source(e.expr.start.line)
+        );
         RETURN(ERROR_T);
       }
     }
     else if (!dynamic_cast<ArrayAccessExpression*>(&e.expr)) {
-      TypeError("cannot perform operation '" + e.op.lexeme + "' on an r-value",
-        Source(e.expr.start.line));
+      TypeError(
+        "cannot perform operation '" + e.op.lexeme + "' on an r-value",
+        Source(e.expr.start.line)
+      );
       RETURN(ERROR_T);
     }
 
     if (type == INT_T) RETURN(INT_T);
-    else if (type == FLOAT_T) RETURN(FLOAT_T);
+    else if (type == FLOAT_T)
+      RETURN(FLOAT_T);
 
-    TypeError("cannot perform operation '" + e.op.lexeme + "' on type '" + type->toString() + "'",
-      Source(e.expr.start.line));
+    TypeError(
+      "cannot perform operation '" + e.op.lexeme + "' on type '" +
+        type->toString() + "'",
+      Source(e.expr.start.line)
+    );
     RETURN(ERROR_T);
   }
 
@@ -335,39 +388,53 @@ struct : Visitor {
       case PLUS:
       case MINUS:
         if (type == INT_T) RETURN(INT_T);
-        else if (type == FLOAT_T) RETURN(FLOAT_T);
-        
-        TypeError("cannot perform operation '" + e.op.lexeme + "' on type '" + type->toString() + "'",
-          Source(e.expr.start.line));
+        else if (type == FLOAT_T)
+          RETURN(FLOAT_T);
+
+        TypeError(
+          "cannot perform operation '" + e.op.lexeme + "' on type '" +
+            type->toString() + "'",
+          Source(e.expr.start.line)
+        );
         RETURN(ERROR_T);
 
       case INCREMENT:
       case DECREMENT:
         if (VarExpression* expr = dynamic_cast<VarExpression*>(&e.expr)) {
           if ((getSymbol(expr->id)->second & IMMUTABLE) == IMMUTABLE) {
-            TypeError("cannot reassign '" + expr->id.lexeme + "'",
-              Source(e.expr.start.line));
+            TypeError(
+              "cannot reassign '" + expr->id.lexeme + "'",
+              Source(e.expr.start.line)
+            );
             RETURN(ERROR_T);
           }
         }
         else if (!dynamic_cast<ArrayAccessExpression*>(&e.expr)) {
-          TypeError("cannot perform operation '" + e.op.lexeme + "' on an r-value",
-            Source(e.expr.start.line));
+          TypeError(
+            "cannot perform operation '" + e.op.lexeme + "' on an r-value",
+            Source(e.expr.start.line)
+          );
           RETURN(ERROR_T);
         }
 
         if (type == INT_T) RETURN(INT_T);
-        else if (type == FLOAT_T) RETURN(FLOAT_T);
+        else if (type == FLOAT_T)
+          RETURN(FLOAT_T);
 
-        TypeError("cannot perform operation '" + e.op.lexeme + "' on type '" + type->toString() + "'",
-          Source(e.expr.start.line));
+        TypeError(
+          "cannot perform operation '" + e.op.lexeme + "' on type '" +
+            type->toString() + "'",
+          Source(e.expr.start.line)
+        );
         RETURN(ERROR_T);
 
       default:
         if (type == BOOL_T) RETURN(BOOL_T);
-        
-        TypeError("cannot perform operation '!' on type '" + type->toString() + "'",
-          Source(e.expr.start.line));
+
+        TypeError(
+          "cannot perform operation '!' on type '" + type->toString() + "'",
+          Source(e.expr.start.line)
+        );
         RETURN(ERROR_T);
     }
   }
@@ -381,16 +448,17 @@ struct : Visitor {
     switch (e.op.type) {
       case COALESCENCE: {
         if (!left->superset(NULL_T)) RETURN(left);
-        else if (left == NULL_T) RETURN(right);
+        else if (left == NULL_T)
+          RETURN(right);
 
         std::vector<Type*> types;
 
         if (UnionType* u = dynamic_cast<UnionType*>(left)) {
           for (Type* t : u->types)
-            if (t != NULL_T)
-              types.push_back(t);
+            if (t != NULL_T) types.push_back(t);
         }
-        else types.push_back(left);
+        else
+          types.push_back(left);
 
         types.push_back(right);
         RETURN(mergeTypes(types));
@@ -399,8 +467,11 @@ struct : Visitor {
       case OR:
         if (left == BOOL_T && right == BOOL_T) RETURN(BOOL_T);
 
-        TypeError("cannot perform operation '" + e.op.lexeme + "' on types '" + left->toString() + "' and '" + right->toString() + "'",
-          Source(e.op.line));
+        TypeError(
+          "cannot perform operation '" + e.op.lexeme + "' on types '" +
+            left->toString() + "' and '" + right->toString() + "'",
+          Source(e.op.line)
+        );
         RETURN(ERROR_T);
 
       case EQUALS:
@@ -409,27 +480,42 @@ struct : Visitor {
       case LESS:
       case GREATER_EQUALS:
       case LESS_EQUALS:
-        if (left == INT_T && right == INT_T || left == FLOAT_T && right == FLOAT_T) RETURN(BOOL_T);
-          
-        TypeError("cannot perform operation '" + e.op.lexeme + "' on types '" + left->toString() + "' and '" + right->toString() + "'",
-          Source(e.op.line));
+        if (
+          left == INT_T && right == INT_T || left == FLOAT_T && right == FLOAT_T
+        )
+          RETURN(BOOL_T);
+
+        TypeError(
+          "cannot perform operation '" + e.op.lexeme + "' on types '" +
+            left->toString() + "' and '" + right->toString() + "'",
+          Source(e.op.line)
+        );
         RETURN(ERROR_T);
 
       case PLUS:
         if (left == INT_T && right == INT_T) RETURN(INT_T);
-        else if (left == FLOAT_T && right == FLOAT_T) RETURN(FLOAT_T);
-        else if (left == STRING_T && right == STRING_T) RETURN(STRING_T);
+        else if (left == FLOAT_T && right == FLOAT_T)
+          RETURN(FLOAT_T);
+        else if (left == STRING_T && right == STRING_T)
+          RETURN(STRING_T);
 
-        TypeError("cannot perform operation '+' on types '" + left->toString() + "' and '" + right->toString() + "'",
-          Source(e.op.line));
+        TypeError(
+          "cannot perform operation '+' on types '" + left->toString() +
+            "' and '" + right->toString() + "'",
+          Source(e.op.line)
+        );
         RETURN(ERROR_T);
 
       default:
         if (left == INT_T && right == INT_T) RETURN(INT_T);
-        else if (left == FLOAT_T && right == FLOAT_T) RETURN(FLOAT_T);
+        else if (left == FLOAT_T && right == FLOAT_T)
+          RETURN(FLOAT_T);
 
-        TypeError("cannot perform operation '" + e.op.lexeme + "' on types '" + left->toString() + "' and '" + right->toString() + "'",
-          Source(e.op.line));
+        TypeError(
+          "cannot perform operation '" + e.op.lexeme + "' on types '" +
+            left->toString() + "' and '" + right->toString() + "'",
+          Source(e.op.line)
+        );
         RETURN(ERROR_T);
     }
   }
@@ -439,15 +525,20 @@ struct : Visitor {
     Type* valueType = infer(e.value);
     Type* defaultType = infer(e._default);
 
-    if (conditionType == ERROR_T || valueType == ERROR_T || defaultType == ERROR_T) RETURN(ERROR_T);
+    if (
+      conditionType == ERROR_T || valueType == ERROR_T || defaultType == ERROR_T
+    )
+      RETURN(ERROR_T);
 
     if (conditionType != BOOL_T) {
-      TypeError("condition expression must be of type 'bool'",
-        Source(e.condition.start.line));
+      TypeError(
+        "condition expression must be of type 'bool'",
+        Source(e.condition.start.line)
+      );
       RETURN(ERROR_T);
     }
 
-    RETURN(mergeTypes({ valueType, defaultType }));
+    RETURN(mergeTypes({valueType, defaultType}));
   }
 
   void visitAssignmentExpression(AssignmentExpression& e) override {
@@ -458,19 +549,24 @@ struct : Visitor {
 
       if (!symbol) RETURN(ERROR_T);
       else if ((symbol->second & IMMUTABLE) == IMMUTABLE) {
-        TypeError("cannot reassign '" + expr->id.lexeme + "'",
-          Source(e.l_value.start.line));
+        TypeError(
+          "cannot reassign '" + expr->id.lexeme + "'",
+          Source(e.l_value.start.line)
+        );
         RETURN(ERROR_T);
       }
 
       left = symbol->first;
     }
     else if (!dynamic_cast<ArrayAccessExpression*>(&e.l_value)) {
-      TypeError("cannot perform operation '" + e.op.lexeme + "' on an r-value",
-        Source(e.l_value.start.line));
+      TypeError(
+        "cannot perform operation '" + e.op.lexeme + "' on an r-value",
+        Source(e.l_value.start.line)
+      );
       RETURN(ERROR_T);
     }
-    else left = infer(e.l_value);
+    else
+      left = infer(e.l_value);
 
     Type* right = infer(e.value);
 
@@ -480,25 +576,37 @@ struct : Visitor {
       case ASSIGN:
         if (left->superset(right)) RETURN(right);
 
-        TypeError("cannot perform operation '" + e.op.lexeme + "' on types '" + left->toString() + "' and '" + right->toString() + "'",
-          Source(e.value.start.line));
+        TypeError(
+          "cannot perform operation '" + e.op.lexeme + "' on types '" +
+            left->toString() + "' and '" + right->toString() + "'",
+          Source(e.value.start.line)
+        );
         RETURN(ERROR_T);
 
       case PLUS_EQUALS:
         if (left == INT_T && right == INT_T) RETURN(INT_T);
-        else if (left == FLOAT_T && right == FLOAT_T) RETURN(FLOAT_T);
-        else if (left == STRING_T && right == STRING_T) RETURN(STRING_T);
-        
-        TypeError("cannot perform operation '+=' on types '" + left->toString() + "' and '" + right->toString() + "'",
-          Source(e.value.start.line));
+        else if (left == FLOAT_T && right == FLOAT_T)
+          RETURN(FLOAT_T);
+        else if (left == STRING_T && right == STRING_T)
+          RETURN(STRING_T);
+
+        TypeError(
+          "cannot perform operation '+=' on types '" + left->toString() +
+            "' and '" + right->toString() + "'",
+          Source(e.value.start.line)
+        );
         RETURN(ERROR_T);
 
       default:
         if (left == INT_T && right == INT_T) RETURN(INT_T);
-        else if (left == FLOAT_T && right == FLOAT_T) RETURN(FLOAT_T);
+        else if (left == FLOAT_T && right == FLOAT_T)
+          RETURN(FLOAT_T);
 
-        TypeError("cannot perform operation '" + e.op.lexeme + "' on types '" + left->toString() + "' and '" + right->toString() + "'",
-          Source(e.value.start.line));
+        TypeError(
+          "cannot perform operation '" + e.op.lexeme + "' on types '" +
+            left->toString() + "' and '" + right->toString() + "'",
+          Source(e.value.start.line)
+        );
         RETURN(ERROR_T);
     }
   }
