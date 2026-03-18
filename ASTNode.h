@@ -30,6 +30,7 @@ struct LiteralExpression : public Expression {
 };
 
 struct ArrayLiteralExpression : public Expression {
+  Type* elementsType;
   std::vector<Expression*> elements;
 
   ArrayLiteralExpression(Token bracket, std::vector<Expression*> elements)

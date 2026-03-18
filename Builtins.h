@@ -75,7 +75,7 @@ void registerBuiltins() {
     std::streamsize size = file.tellg();
     file.seekg(0, std::ios::beg);
 
-    Array* content = new Array();
+    Array* content = new Array(CHAR_T);
     content->reserve(size);
 
     char c;

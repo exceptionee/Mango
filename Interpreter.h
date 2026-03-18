@@ -200,7 +200,7 @@ struct : Visitor {
   }
 
   void visitArrayLiteralExpression(ArrayLiteralExpression& e) override {
-    Array* array = new Array();
+    Array* array = new Array(e.elementsType);
 
     for (Expression* element : e.elements)
       array->push_back(eval(*element));

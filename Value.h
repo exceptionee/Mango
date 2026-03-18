@@ -106,19 +106,16 @@ struct String : Object {
 };
 
 struct Array : Object, std::vector<Value, gc_allocator<Value>> {
+  Type* type;
+
+  Array(Type* elementsType) : type(new ArrayType(elementsType)) {}
+
   bool equals(Object& o) override {
     return this == &o;
   }
 
   Type* typeOf() override {
-    if (this->empty()) return new ArrayType(NULL_T);
-
-    std::vector<Type*> types{};
-
-    for (Value element : *this)
-      types.push_back(element.typeOf());
-
-    return new ArrayType(mergeTypes(types));
+    return type;
   }
 
   std::string toString() override {

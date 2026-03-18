@@ -239,7 +239,10 @@ struct : Visitor {
   }
 
   void visitArrayLiteralExpression(ArrayLiteralExpression& e) override {
-    if (e.elements.empty()) RETURN(new ArrayType(NULL_T));
+    if (e.elements.empty()) {
+      e.elementsType = NULL_T;
+      RETURN(new ArrayType(NULL_T));
+    }
 
     std::vector<Type*> types{};
 
@@ -251,7 +254,8 @@ struct : Visitor {
       types.push_back(type);
     }
 
-    RETURN(new ArrayType(mergeTypes(types)));
+    e.elementsType = mergeTypes(types);
+    RETURN(new ArrayType(e.elementsType));
   }
 
   void visitVarExpression(VarExpression& e) override {
