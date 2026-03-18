@@ -50,21 +50,9 @@ struct Value {
       default: return NULL_T;
     }
   }
-
-  std::string toString() {
-    switch (data.index()) {
-      case 0:
-        return "\e[33m" + std::to_string(std::get<long long>(data)) + "\e[0m";
-      case 1:
-        return "\e[33m" + std::to_string(std::get<double>(data)) + "\e[0m";
-      case 2: return "\e[33m" + std::string(1, std::get<char>(data)) + "\e[0m";
-      case 3:
-        return std::get<bool>(data) ? "\e[31mtrue\e[0m" : "\e[31mfalse\e[0m";
-      case 4: return std::get<Object*>(data)->toString();
-      default: return "\e[38;5;250mnull\e[0m";
-    }
-  }
 };
+
+std::string stringify(const Value& v);
 
 struct Function : Object {
   FunctionDeclaration& declaration;
@@ -94,7 +82,7 @@ struct Function : Object {
   }
 
   std::string toString() override {
-    return "\e[34m<function: " + declaration.id.lexeme + ">\e[0m";
+    return "<function: " + declaration.id.lexeme + ">";
   }
 };
 
@@ -113,7 +101,7 @@ struct String : Object {
   }
 
   std::string toString() override {
-    return "\e[32m" + chars + "\e[0m";
+    return chars;
   }
 };
 
@@ -137,10 +125,49 @@ struct Array : Object, std::vector<Value, gc_allocator<Value>> {
     std::string result = "[";
 
     for (int i = 0; i < this->size(); ++i) {
-      result += (*this)[i].toString();
+      result += stringify((*this)[i]);
       if (i != this->size() - 1) result += ", ";
     }
 
     return (result + "]");
   }
 };
+
+std::string stringify(const Value& v) {
+  switch (v.data.index()) {
+    case 0: return std::to_string(std::get<long long>(v.data));
+    case 1: return std::to_string(std::get<double>(v.data));
+    case 2: return std::string(1, std::get<char>(v.data));
+    case 3: return std::get<bool>(v.data) ? "true" : "false";
+    case 4: return std::get<Object*>(v.data)->toString();
+    default: return "null";
+  }
+}
+
+std::string format(const Value& v) {
+  switch (v.data.index()) {
+    case 0:
+    case 1:
+    case 2: return "\e[33m" + stringify(v) + "\e[0m";
+    case 3: return "\e[31m" + stringify(v) + "\e[0m";
+    case 4: {
+      Object* obj = std::get<Object*>(v.data);
+
+      if (dynamic_cast<String*>(obj))
+        return "\e[32m" + obj->toString() + "\e[0m";
+      else if (dynamic_cast<Function*>(obj))
+        return "\e[34m" + obj->toString() + "\e[0m";
+
+      auto array = static_cast<Array*>(obj);
+      std::string result = "[";
+
+      for (int i = 0; i < array->size(); ++i) {
+        result += format((*array)[i]);
+        if (i != array->size() - 1) result += ", ";
+      }
+
+      return (result + "]");
+    }
+    default: return "\e[38;5;250mnull\e[0m";
+  }
+}

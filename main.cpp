@@ -33,7 +33,6 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  std::ios::sync_with_stdio(false);
   std::cout << std::setprecision(17);
   registerBuiltins();
   interpret(declarations);
@@ -54,7 +53,7 @@ int main(int argc, char* argv[]) {
       auto fallback = TypeChecker.stack;
       Value result = interpret(input);
 
-      if (!hadError) std::cout << result.toString() << std::endl;
+      if (!hadError) std::cout << format(result) << std::endl;
       else {
         hadError = false;
         TypeChecker.stack = fallback;

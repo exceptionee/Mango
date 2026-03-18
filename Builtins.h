@@ -8,7 +8,10 @@
 
 std::string declarations = R"(
   func print(value: any): null {}
-  func println(value: any): null {}
+  func println(value: any): null {
+    print(value);
+    print('\n');
+  }
   func input(): string {}
   func clock(): int {}
   func sizeof(value: any): int {}
@@ -22,16 +25,16 @@ std::string declarations = R"(
   func pop(array: any): any {
     return splice(array, sizeof(array) - 1, 1, []);
   }
+  func toString(v: any): string {}
+  func toInt(v: float | char): int {}
+  func toFloat(v: int): float {}
+  func toChar(v: int): char {}
+  func charAt(str: string, index: int): char {}
 )";
 
 void registerBuiltins() {
   builtins["print"] = [](std::vector<Value, gc_allocator<Value>>& args) {
-    std::cout << args[0].toString();
-    return Value{std::monostate{}};
-  };
-
-  builtins["println"] = [](std::vector<Value, gc_allocator<Value>>& args) {
-    std::cout << args[0].toString() << std::endl;
+    std::cout << format(args[0]) << std::flush;
     return Value{std::monostate{}};
   };
 
@@ -107,18 +110,20 @@ void registerBuiltins() {
   };
 
   builtins["splice"] = [](std::vector<Value, gc_allocator<Value>>& args) {
-    if (args[0].data.index() != 4 || args[3].data.index() != 4)
+    if (args[0].data.index() != 4 || args[3].data.index() != 4) {
       throw std::runtime_error(
         "first and fourth arguments to splice must be arrays"
       );
+    }
 
     Array* array = dynamic_cast<Array*>(std::get<Object*>(args[0].data));
     Array* insert = dynamic_cast<Array*>(std::get<Object*>(args[3].data));
 
-    if (!array || !insert)
+    if (!array || !insert) {
       throw std::runtime_error(
         "first and fourth arguments to splice must be arrays"
       );
+    }
 
     int start = std::get<long long>(args[1].data);
     int deleteCount = std::get<long long>(args[2].data);
@@ -130,5 +135,39 @@ void registerBuiltins() {
     array->insert(array->begin() + start, insert->begin(), insert->end());
 
     return args[0];
+  };
+
+  builtins["toString"] = [](std::vector<Value, gc_allocator<Value>>& args) {
+    return Value{new String(stringify(args[0]))};
+  };
+
+  builtins["toInt"] = [](std::vector<Value, gc_allocator<Value>>& args) {
+    Value v = args[0];
+
+    switch (v.data.index()) {
+      case 1: return Value{(long long)std::get<double>(v.data)};
+      default: return Value{(long long)std::get<char>(v.data)};
+    }
+  };
+
+  builtins["toFloat"] = [](std::vector<Value, gc_allocator<Value>>& args) {
+    return Value{(double)std::get<long long>(args[0].data)};
+  };
+
+  builtins["toChar"] = [](std::vector<Value, gc_allocator<Value>>& args) {
+    return Value{(char)std::get<long long>(args[0].data)};
+  };
+
+  builtins["charAt"] = [](std::vector<Value, gc_allocator<Value>>& args) {
+    String* str = (String*)std::get<Object*>(args[0].data);
+    long long index = std::get<long long>(args[1].data);
+
+    if (index >= 0 && index < str->chars.size())
+      return Value{str->chars[index]};
+
+    throw std::runtime_error(
+      "index " + std::to_string(index) + " out of bounds for length " +
+      std::to_string(str->chars.size())
+    );
   };
 }
