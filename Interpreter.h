@@ -10,7 +10,6 @@
 #include <math.h>
 #include <system_error>
 
-#undef RETURN
 #define RETURN(value) \
   do { \
     returnValue = value; \
@@ -445,3 +444,6 @@ struct : Visitor {
     }
   }
 } Interpreter;
+
+#undef RETURN
+#undef MATH_OP

@@ -8,7 +8,6 @@
 #include <deque>
 #include <unordered_map>
 
-#undef RETURN
 #define RETURN(type) \
   do { \
     inferredType = type; \
@@ -616,3 +615,5 @@ struct : Visitor {
     }
   }
 } TypeChecker;
+
+#undef RETURN
