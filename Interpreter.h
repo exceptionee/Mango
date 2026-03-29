@@ -327,17 +327,27 @@ struct : Visitor {
 
   void visitBinaryExpression(BinaryExpression& e) override {
     const Value left = eval(e.left);
-    const Value right = eval(e.right);
 
     switch (e.op.type) {
       case COALESCENCE:
         RETURN(
-          std::holds_alternative<std::monostate>(left.data) ? right : left
+          std::holds_alternative<std::monostate>(left.data) ? eval(e.right)
+                                                            : left
         );
       case AND:
-        RETURN(Value{std::get<bool>(left.data) && std::get<bool>(right.data)});
+        RETURN(
+          Value{std::get<bool>(left.data) && std::get<bool>(eval(e.right).data)}
+        );
       case OR:
-        RETURN(Value{std::get<bool>(left.data) || std::get<bool>(right.data)});
+        RETURN(
+          Value{std::get<bool>(left.data) || std::get<bool>(eval(e.right).data)}
+        );
+      default: break;
+    }
+
+    const Value right = eval(e.right);
+
+    switch (e.op.type) {
       case EQUALS: RETURN(Value{left == right});
       case NOT_EQUALS: RETURN(Value{!(left == right)});
       case GREATER: RETURN(MATH_OP(left, >, right));
